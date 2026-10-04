@@ -1,11 +1,11 @@
 {
-  "version": "0.2.4",
-  "versionCode": 13,
-  "url": "https://github.com/moznoazachem/giga-pisar-android/releases/download/v0.2.4/GigaPisar.apk",
-  "sha256": "64f2a6fecfdda5db72baea7e8a5245b4c3d8ff29b35195871fc2b0fb3fd4a6c8",
+  "version": "0.2.5",
+  "versionCode": 14,
+  "url": "https://github.com/moznoazachem/giga-pisar-android/releases/download/v0.2.5/GigaPisar.apk",
+  "sha256": "55b93178999b3d1239f28af95efa5843a959d81d41f4319f64108db9cc0ef9e8",
   "size": 58028416,
   "notes": {
-    "ru": "Безопасность: в поле пароля надиктованное не уходит в облачный Мозг, надиктованный текст не остаётся в буфере обмена и не попадает в историю буфера клавиатуры, обновления берутся только с нашей страницы на GitHub.",
-    "en": "Security: dictation into a password field never goes to the cloud Brain, dictated text does not stay on the clipboard or in the keyboard's clipboard history, updates come only from our GitHub page."
+    "ru": "В браузере и Google Keep текст больше не вставляется дважды.",
+    "en": "Text is no longer inserted twice in the browser and Google Keep."
   }
 }

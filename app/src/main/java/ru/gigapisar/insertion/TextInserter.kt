@@ -119,9 +119,16 @@ class TextInserter(
         val end = if (selEnd in start..current.length) selEnd else start
         val updated = current.substring(0, start) + text + current.substring(end)
         if (!setText(node, updated, start + text.length)) return null
-        // Some apps accept the action but ignore it: only count it when the field really holds the text.
-        node.refresh()
-        return if (fieldText(node).startsWith(text, start)) Insertion(node, start) else null
+        // Some apps accept the action but ignore it: only count it when the field shows a change.
+        // Browsers and Keep apply it a moment later or reshape the text (line breaks), so wait a
+        // little, and once the field changed at all never paste on top: that doubled the text.
+        repeat(VERIFY_ATTEMPTS) {
+            node.refresh()
+            val now = fieldText(node)
+            if (now.startsWith(text, start) || now != current) return Insertion(node, start)
+            Thread.sleep(VERIFY_STEP_MS)
+        }
+        return null
     }
 
     private fun paste(
@@ -178,6 +185,8 @@ class TextInserter(
 
     private companion object {
         const val CLIPBOARD_CLEAR_DELAY_MS = 250L
+        const val VERIFY_ATTEMPTS = 6
+        const val VERIFY_STEP_MS = 50L
     }
 
     private fun findFocusedNode(): AccessibilityNodeInfo? {
