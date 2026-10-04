@@ -99,6 +99,15 @@ class RecordingButton(
 
     private val circleRadius = CIRCLE_RADIUS_DP * density
 
+    /** Size relative to the original; everything is drawn at the original size and scaled. */
+    var sizeScale = 1f
+        set(value) {
+            if (field == value) return
+            field = value
+            requestLayout()
+            invalidate()
+        }
+
     /** Microphone level 0..1 while recording; drives the glow and the halos. */
     var level: () -> Float = { 0f }
 
@@ -166,10 +175,8 @@ class RecordingButton(
         widthMeasureSpec: Int,
         heightMeasureSpec: Int,
     ) {
-        setMeasuredDimension(
-            buttonSize,
-            buttonSize,
-        )
+        val size = (buttonSize * sizeScale).toInt()
+        setMeasuredDimension(size, size)
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
@@ -179,7 +186,7 @@ class RecordingButton(
                     return false
                 }
 
-                if (hypot(event.x - width / 2f, event.y - height / 2f) > circleRadius + 6 * density) {
+                if (hypot(event.x - width / 2f, event.y - height / 2f) > (circleRadius + 6 * density) * sizeScale) {
                     return false
                 }
 
@@ -379,6 +386,8 @@ class RecordingButton(
         val c = width / 2f
         val r = circleRadius
         val alpha = if (dimmed) 115 else 255
+        canvas.save()
+        canvas.scale(sizeScale, sizeScale, c, c)
         val t = (SystemClock.uptimeMillis() - animationStart).toFloat()
 
         if (state == State.RECORDING) {
@@ -420,6 +429,7 @@ class RecordingButton(
                 drawMicrophone(canvas = canvas, cx = c, cy = c)
             }
         }
+        canvas.restore()
     }
 
     fun setState(value: State) {

@@ -1,11 +1,11 @@
 {
-  "version": "0.2.5",
-  "versionCode": 14,
-  "url": "https://github.com/moznoazachem/giga-pisar-android/releases/download/v0.2.5/GigaPisar.apk",
-  "sha256": "55b93178999b3d1239f28af95efa5843a959d81d41f4319f64108db9cc0ef9e8",
-  "size": 58028416,
+  "version": "0.2.6",
+  "versionCode": 15,
+  "url": "https://github.com/moznoazachem/giga-pisar-android/releases/download/v0.2.6/GigaPisar.apk",
+  "sha256": "4f7c4d66cff4d6823e46868f5c0c7a026dfb9256a6964bbada4e6b3abea0dae4",
+  "size": 58114292,
   "notes": {
-    "ru": "В браузере и Google Keep текст больше не вставляется дважды.",
-    "en": "Text is no longer inserted twice in the browser and Google Keep."
+    "ru": "Размер плавающей кнопки теперь можно менять ползунком в настройках, пока тянете, кнопка сразу показывается на экране. И можно выбрать приложения, где кнопка не появляется.",
+    "en": "The floating button size can now be changed with a slider in the settings; while you drag it, the button shows on screen. And you can pick apps where the button does not appear."
   }
 }

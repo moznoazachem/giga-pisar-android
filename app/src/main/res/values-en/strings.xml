@@ -135,4 +135,12 @@
     <string name="no_clipboard_hint">Direct insertion only. Where a field doesn\'t take it, Pisar offers to copy the text instead</string>
     <string name="no_direct_insert">This field doesn\'t take text directly</string>
     <string name="copy_text">Copy</string>
+    <string name="fab_size">Button size</string>
+    <string name="fab_size_smaller">smaller</string>
+    <string name="fab_size_bigger">bigger</string>
+    <string name="fab_hidden_apps">Hide in apps</string>
+    <string name="fab_hidden_none">Shown everywhere</string>
+    <string name="fab_hidden_more">%1$s and %2$d more</string>
+    <string name="fab_hidden_search">Find an app</string>
+    <string name="fab_hidden_hint">The floating button does not appear in the apps you tick. The volume key works there as usual.</string>
 </resources>

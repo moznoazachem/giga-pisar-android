@@ -3,7 +3,9 @@ package ru.gigapisar.settings
 import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -26,6 +28,12 @@ object SettingsRepository {
 
     private val volumeKeyEnabledKey =
         booleanPreferencesKey("volume_key_enabled")
+
+    private val fabScaleKey =
+        floatPreferencesKey("fab_scale")
+
+    private val fabHiddenAppsKey =
+        stringSetPreferencesKey("fab_hidden_apps")
 
     private val noClipboardKey =
         booleanPreferencesKey("no_clipboard")
@@ -54,6 +62,35 @@ object SettingsRepository {
         context.settingsDataStore.data.map { preferences ->
             preferences[virtualButtonVisibleKey] ?: true
         }
+
+    /** Floating button size relative to the original, [FAB_SCALE_MIN]..[FAB_SCALE_MAX]. */
+    fun fabScale(context: Context): Flow<Float> =
+        context.settingsDataStore.data.map { preferences ->
+            (preferences[fabScaleKey] ?: 1f).coerceIn(FAB_SCALE_MIN, FAB_SCALE_MAX)
+        }
+
+    suspend fun setFabScale(
+        context: Context,
+        scale: Float,
+    ) {
+        context.settingsDataStore.edit { it[fabScaleKey] = scale.coerceIn(FAB_SCALE_MIN, FAB_SCALE_MAX) }
+    }
+
+    /** Apps (package names) where the floating button stays hidden; the volume key still works there. */
+    fun fabHiddenApps(context: Context): Flow<Set<String>> =
+        context.settingsDataStore.data.map { preferences ->
+            preferences[fabHiddenAppsKey] ?: emptySet()
+        }
+
+    suspend fun setFabHiddenApps(
+        context: Context,
+        packages: Set<String>,
+    ) {
+        context.settingsDataStore.edit { it[fabHiddenAppsKey] = packages }
+    }
+
+    const val FAB_SCALE_MIN = 0.6f
+    const val FAB_SCALE_MAX = 1.4f
 
     suspend fun setInsertionMode(
         context: Context,

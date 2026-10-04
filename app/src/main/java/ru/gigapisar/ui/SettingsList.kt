@@ -61,6 +61,8 @@ internal fun SettingsList(
     volumeKeyEnabled: Boolean,
     vibrationEnabled: Boolean,
     noClipboard: Boolean = false,
+    fabScale: Float = 1f,
+    hiddenAppNames: List<String> = emptyList(),
     microphoneGranted: Boolean,
     accessibilityEnabled: Boolean,
     onInsertionMode: (InsertionMode) -> Unit,
@@ -68,6 +70,8 @@ internal fun SettingsList(
     onVolumeKey: (Boolean) -> Unit,
     onVibration: (Boolean) -> Unit,
     onNoClipboard: (Boolean) -> Unit = {},
+    onFabScale: (Float) -> Unit = {},
+    onOpenHiddenApps: () -> Unit = {},
     onRequestMicrophone: () -> Unit,
     onOpenAccessibilitySettings: () -> Unit,
     brainSection: @Composable () -> Unit = {},
@@ -88,6 +92,10 @@ internal fun SettingsList(
             checked = virtualButtonVisible,
             onChange = onVirtualButton,
         )
+        if (virtualButtonVisible) {
+            FabSizeRow(scale = fabScale, onScale = onFabScale)
+            FabHiddenAppsRow(names = hiddenAppNames, onOpen = onOpenHiddenApps)
+        }
         SwitchRow(
             icon = Icons.AutoMirrored.Outlined.VolumeDown,
             title = R.string.volume_key,

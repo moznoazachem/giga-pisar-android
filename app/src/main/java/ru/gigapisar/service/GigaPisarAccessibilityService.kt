@@ -25,6 +25,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -38,6 +39,7 @@ import ru.gigapisar.brain.KeyVault
 import ru.gigapisar.brain.brainRussian
 import ru.gigapisar.insertion.TextInserter
 import ru.gigapisar.model.ModelManager
+import ru.gigapisar.overlay.FabPreview
 import ru.gigapisar.overlay.OverlayManager
 import ru.gigapisar.overlay.RecordingPill
 import ru.gigapisar.settings.AppLanguage
@@ -90,6 +92,9 @@ class GigaPisarAccessibilityService : AccessibilityService() {
     private var volumeKeyEnabled = true
     private var vibrationEnabled = true
     private var noClipboard = false
+    private var fabHiddenApps: Set<String> = emptySet()
+    private var fabScale = 1f
+    private var fabPreviewing = false
 
     @Volatile
     private var brainSettings = SettingsRepository.BrainSettings()
@@ -168,6 +173,41 @@ class GigaPisarAccessibilityService : AccessibilityService() {
                         updateButtonVisibility()
                     }
                 }
+        }
+
+        serviceScope.launch {
+            SettingsRepository
+                .fabHiddenApps(this@GigaPisarAccessibilityService)
+                .collectLatest { apps ->
+                    fabHiddenApps = apps
+                    updateButtonVisibility()
+                }
+        }
+
+        serviceScope.launch {
+            SettingsRepository
+                .fabScale(this@GigaPisarAccessibilityService)
+                .collectLatest { scale ->
+                    fabScale = scale
+                    if (!fabPreviewing) overlay.setScale(scale)
+                }
+        }
+
+        serviceScope.launch {
+            // While the size slider moves, the real button shows at that size; a moment after it
+            // stops, back to the saved size and the usual rules.
+            FabPreview.scale.collectLatest { scale ->
+                if (scale != null) {
+                    fabPreviewing = true
+                    overlay.setScale(scale)
+                    updateButtonVisibility()
+                } else if (fabPreviewing) {
+                    delay(FAB_PREVIEW_LINGER_MS)
+                    fabPreviewing = false
+                    overlay.setScale(fabScale)
+                    updateButtonVisibility()
+                }
+            }
         }
 
         serviceScope.launch {
@@ -308,11 +348,13 @@ class GigaPisarAccessibilityService : AccessibilityService() {
 
     private fun updateButtonVisibility() {
         val shouldShow =
-            virtualButtonEnabled &&
+            fabPreviewing ||
+                virtualButtonEnabled &&
                 (
                     insertionMode == InsertionMode.CLIPBOARD ||
                         focusedNode != null
-                )
+                ) &&
+                !hiddenInCurrentApp()
 
         overlay.setButtonVisible(shouldShow)
 
@@ -322,6 +364,19 @@ class GigaPisarAccessibilityService : AccessibilityService() {
             modelReady = modelManager.isInstalled()
         }
         overlay.setAvailable(modelReady)
+    }
+
+    /** The app on screen is one where the user chose to hide the floating button. */
+    private fun hiddenInCurrentApp(): Boolean {
+        if (fabHiddenApps.isEmpty()) return false
+        val pkg =
+            focusedNode?.packageName?.toString()
+                ?: try {
+                    rootInActiveWindow?.packageName?.toString()
+                } catch (_: Exception) {
+                    null
+                }
+        return pkg != null && pkg in fabHiddenApps
     }
 
     private fun findFocusedEditable(event: AccessibilityEvent? = null): AccessibilityNodeInfo? {
@@ -747,6 +802,9 @@ class GigaPisarAccessibilityService : AccessibilityService() {
     companion object {
         // An ordinary tap lasts 100-200 ms; recording starts only on a deliberate hold.
         private const val VOLUME_RECORDING_HOLD_DELAY_MS = 350L
+
+        /** How long the size preview stays after the slider stops. */
+        private const val FAB_PREVIEW_LINGER_MS = 1200L
 
         /** How often the service wakes to see whether a new version is due (the check itself runs every 6 hours). */
         private const val UPDATE_TICK_MS = 60 * 60 * 1000L
