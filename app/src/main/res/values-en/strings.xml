@@ -143,4 +143,5 @@
     <string name="fab_hidden_more">%1$s and %2$d more</string>
     <string name="fab_hidden_search">Find an app</string>
     <string name="fab_hidden_hint">The floating button does not appear in the apps you tick. The volume key works there as usual.</string>
+    <string name="download_no_network">The phone cannot reach the server. Check the internet: Wi-Fi may be connected without access. If Private DNS is on, set it to Automatic or try mobile data.</string>
 </resources>

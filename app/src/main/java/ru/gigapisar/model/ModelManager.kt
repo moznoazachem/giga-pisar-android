@@ -179,7 +179,7 @@ class ModelManager(
         }
     }
 
-    /** Tries each address in turn; the last one's error is the one reported. */
+    /** Tries each address in turn; the first (main) address's error is the one reported. */
     private suspend fun downloadFromMirrors(
         urls: List<String>,
         destination: File,
@@ -195,7 +195,7 @@ class ModelManager(
             } catch (error: kotlinx.coroutines.CancellationException) {
                 throw error
             } catch (error: Throwable) {
-                lastError = error
+                if (lastError == null) lastError = error
             }
         }
         throw lastError ?: IllegalStateException("No download address")
