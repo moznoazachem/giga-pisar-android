@@ -25,8 +25,10 @@ class OverlayManager(
     private val density =
         service.resources.displayMetrics.density
 
-    private val buttonSize =
-        (BUTTON_SIZE_DP * density).roundToInt()
+    private var scale = 1f
+
+    private val buttonSize: Int
+        get() = (BUTTON_SIZE_DP * density * scale).roundToInt()
 
     private val edgeMargin =
         (EDGE_MARGIN_DP * density).roundToInt()
@@ -132,6 +134,29 @@ class OverlayManager(
             button.showAnimated()
         } else {
             button.hideAnimated()
+        }
+    }
+
+    /** Resizes the button (the settings slider); keeps its centre where it was and on screen. */
+    fun setScale(value: Float) {
+        if (value == scale) return
+        val oldSize = buttonSize
+        scale = value
+        button.sizeScale = value
+        val newSize = buttonSize
+        params.width = newSize
+        params.height = newSize
+        val bounds = getScreenBounds()
+        params.x =
+            (params.x + (oldSize - newSize) / 2).coerceIn(edgeMargin, (bounds.width - newSize - edgeMargin).coerceAtLeast(edgeMargin))
+        params.y =
+            (params.y + (oldSize - newSize) / 2).coerceIn(edgeMargin, (bounds.height - newSize - edgeMargin).coerceAtLeast(edgeMargin))
+        if (attached) {
+            try {
+                windowManager.updateViewLayout(button, params)
+            } catch (_: Exception) {
+                // The view may be on its way out.
+            }
         }
     }
 
