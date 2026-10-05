@@ -109,13 +109,30 @@ class TextInserter(
         // Only plain input fields: there the text we read is the whole text, so writing it back
         // loses nothing. Anything else (web editors, custom views) goes through paste.
         if (node.isPassword || node.className?.toString() != "android.widget.EditText") return null
-        val current = fieldText(node)
-        val selStart = node.textSelectionStart
-        val selEnd = node.textSelectionEnd
-        // A focused plain field always knows its cursor. When it does not say, what we read
-        // may not be its real text (a hint drawn by the app, say): leave it to paste.
-        if (selStart !in 0..current.length) return null
-        val start = selStart
+        var current = fieldText(node)
+        val shown = current // what the field showed before, hint included
+        var selStart = node.textSelectionStart
+        var selEnd = node.textSelectionEnd
+        if (selStart < 0 && current.isNotEmpty()) {
+            // No cursor, yet some text: real text, or a hint the app draws as text (Telegram's
+            // "Message"). Ask for the cursor at the end: a real field takes it, an empty one cannot.
+            val toEnd =
+                Bundle().apply {
+                    putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, current.length)
+                    putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, current.length)
+                }
+            node.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, toEnd)
+            node.refresh()
+            selStart = node.textSelectionStart
+            selEnd = node.textSelectionEnd
+            // The cursor landed at 0: the field is empty and the text was its hint. If the app ignored
+            // the request (still -1), we know nothing and leave it to paste, never overwrite blindly.
+            if (selStart == 0) current = ""
+        }
+        // An empty field (or one showing only its hint) may report no cursor at all (-1): there is
+        // nothing to lose, write from the start. Any other field without a cursor goes to paste.
+        if (selStart !in 0..current.length && current.isNotEmpty()) return null
+        val start = selStart.coerceIn(0, current.length)
         val end = if (selEnd in start..current.length) selEnd else start
         val updated = current.substring(0, start) + text + current.substring(end)
         if (!setText(node, updated, start + text.length)) return null
@@ -125,7 +142,7 @@ class TextInserter(
         repeat(VERIFY_ATTEMPTS) {
             node.refresh()
             val now = fieldText(node)
-            if (now.startsWith(text, start) || now != current) return Insertion(node, start)
+            if (now.startsWith(text, start) || now != shown) return Insertion(node, start)
             Thread.sleep(VERIFY_STEP_MS)
         }
         return null
