@@ -35,6 +35,8 @@
     <string name="button_idle">Voice input</string>
     <string name="button_recording">Recording</string>
     <string name="button_processing">Recognizing</string>
+    <string name="button_insert">Insert</string>
+    <string name="bar_cancel">Cancel</string>
 
     <string name="setup_step">Step %1$d of 3</string>
     <string name="setup_mic_title">Allow the microphone</string>

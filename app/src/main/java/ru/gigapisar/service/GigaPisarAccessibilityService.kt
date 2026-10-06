@@ -153,10 +153,16 @@ class GigaPisarAccessibilityService : AccessibilityService() {
             OverlayManager(
                 this,
                 onRecordingStart = {
-                    handleRecordingStart()
+                    handleRecordingStart(fromButton = true)
                 },
                 onRecordingStop = {
                     handleRecordingStop()
+                },
+                onRecordingCancel = {
+                    handleRecordingCancel()
+                },
+                onLocked = {
+                    buzz()
                 },
             )
 
@@ -352,6 +358,8 @@ class GigaPisarAccessibilityService : AccessibilityService() {
     private fun updateButtonVisibility() {
         val shouldShow =
             fabPreviewing ||
+                // A hands-free recording is ended only with the button: it stays until then.
+                recording && overlay.handsFree ||
                 virtualButtonEnabled &&
                 (
                     insertionMode == InsertionMode.CLIPBOARD ||
@@ -414,7 +422,7 @@ class GigaPisarAccessibilityService : AccessibilityService() {
         }
     }
 
-    private fun handleRecordingStart() {
+    private fun handleRecordingStart(fromButton: Boolean = false) {
         if (recording) {
             return
         }
@@ -460,9 +468,28 @@ class GigaPisarAccessibilityService : AccessibilityService() {
 
         recording = true
         overlay.setLevelSource { audioRecorder.level }
-        overlay.setRecording()
-        pill.showListening(focusedFieldBounds()) { audioRecorder.level }
+        if (fromButton) {
+            // The strip next to the button shows the time and the way to cancel.
+            overlay.setRecording()
+        } else {
+            overlay.setRecording(withHints = false)
+            pill.showListening(focusedFieldBounds()) { audioRecorder.level }
+        }
         buzz()
+    }
+
+    /** A slide toward "cancel" or a tap on it: the recording is thrown away, nothing is inserted. */
+    private fun handleRecordingCancel() {
+        if (!recording) {
+            overlay.setIdle()
+            return
+        }
+        recording = false
+        audioRecorder.cancel()
+        overlay.setIdle()
+        pill.hide()
+        buzz()
+        updateButtonVisibility()
     }
 
     private fun handleRecordingStop() {

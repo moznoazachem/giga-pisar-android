@@ -35,6 +35,8 @@
     <string name="button_idle">Голосовой ввод</string>
     <string name="button_recording">Идёт запись</string>
     <string name="button_processing">Распознавание</string>
+    <string name="button_insert">Вставить</string>
+    <string name="bar_cancel">Отмена</string>
 
     <string name="setup_step">Шаг %1$d из 3</string>
     <string name="setup_mic_title">Разрешите микрофон</string>

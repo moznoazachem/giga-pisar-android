@@ -12,6 +12,7 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
 import ru.gigapisar.R
+import ru.gigapisar.settings.AppLanguage
 import kotlin.math.abs
 import kotlin.math.hypot
 
@@ -32,6 +33,8 @@ class RecordingButton(
         private const val DRAG_WINDOW_MS = 250L
         private const val VISIBILITY_ANIMATION_DURATION = 180L
         private const val PRESSED_SCALE = 0.94f
+        private const val LOCK_DISTANCE_DP = 80
+        private const val CANCEL_DISTANCE_DP = 110
     }
 
     private val density = resources.displayMetrics.density
@@ -88,6 +91,51 @@ class RecordingButton(
 
     var onDragEnd: (() -> Unit)? = null
 
+    /**
+     * Hands-free gestures, as in messengers: while holding, a slide up to the lock keeps the
+     * recording going without the finger, a slide toward the middle of the screen throws it
+     * away. [onSwipe] reports how far the finger went (inward and up, in pixels, only the
+     * leading direction) so the owner can move the button and the hints along.
+     */
+    var onSwipe: ((inward: Float, up: Float) -> Unit)? = null
+    var onLock: (() -> Unit)? = null
+    var onCancel: (() -> Unit)? = null
+
+    /** -1 when the middle of the screen is to the left of the button, +1 when to the right. */
+    var inwardSign = -1f
+
+    /** -1 when the lock is above the button, +1 when it had to go below. */
+    var lockSign = -1f
+
+    /** Locked by a slide up: the next tap on the button ends the recording. */
+    var handsFree = false
+        set(value) {
+            field = value
+            contentDescription = text(if (value) R.string.button_insert else currentDescription())
+            invalidate()
+        }
+
+    /**
+     * Side where the recording bar sits (-1 left, +1 right, 0 none): the button draws the bar's
+     * end under itself, so the bar in its own window and the circle meet without a seam.
+     */
+    var barSide = 0
+        set(value) {
+            field = value
+            invalidate()
+        }
+
+    /** Bar height in dp, shared with the bar window. */
+    val barHeightDp = RecordingBar.HEIGHT_DP
+
+    /** What the current touch turned out to be. */
+    private enum class Gesture { NONE, HOLD, TAP_HANDS_FREE, DONE }
+
+    private var gesture = Gesture.NONE
+
+    private val lockDistance get() = LOCK_DISTANCE_DP * density * sizeScale
+    private val cancelDistance get() = CANCEL_DISTANCE_DP * density * sizeScale
+
     private val paint =
         Paint(Paint.ANTI_ALIAS_FLAG)
 
@@ -133,6 +181,15 @@ class RecordingButton(
         }
 
     private var greenShader: Shader? = null
+    private var redShader: Shader? = null
+    private val labelPaint =
+        Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.WHITE
+            textAlign = Paint.Align.CENTER
+            typeface = android.graphics.Typeface.DEFAULT_BOLD
+        }
+    private val barPaint =
+        Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE }
     private var smoothLevel = 0f
     private var animationStart = 0L
 
@@ -182,140 +239,104 @@ class RecordingButton(
     override fun onTouchEvent(event: MotionEvent): Boolean {
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
-                if (state != State.IDLE) {
-                    return false
-                }
-
                 if (hypot(event.x - width / 2f, event.y - height / 2f) > (circleRadius + 6 * density) * sizeScale) {
                     return false
                 }
 
-                dragging = false
-                recordingForCurrentGesture = true
-
                 downRawX = event.rawX
                 downRawY = event.rawY
-
                 lastRawX = event.rawX
                 lastRawY = event.rawY
+                dragging = false
 
-            /*
-             * Start recording immediately.
-             *
-             * Previously this was delayed by
-             * ViewConfiguration.getLongPressTimeout(),
-             * which made the button feel unresponsive.
-             */
+                if (state == State.RECORDING && handsFree) {
+                    // The tap that ends a hands-free recording (or a slide that cancels it).
+                    gesture = Gesture.TAP_HANDS_FREE
+                    pressIn()
+                    return true
+                }
+
+                if (state != State.IDLE) {
+                    return false
+                }
+
+                gesture = Gesture.HOLD
+                recordingForCurrentGesture = true
+
+                // Recording starts right away: a delay made the button feel unresponsive.
                 setState(State.RECORDING)
                 onRecordingStart?.invoke()
-
-            /*
-             * Small visual feedback that the press was accepted.
-             */
-                animate()
-                    .scaleX(PRESSED_SCALE)
-                    .scaleY(PRESSED_SCALE)
-                    .setDuration(80L)
-                    .start()
-
+                pressIn()
                 return true
             }
 
             MotionEvent.ACTION_MOVE -> {
-                if (state != State.RECORDING && !dragging) {
-                    return true
-                }
+                val totalDx = event.rawX - downRawX
+                val totalDy = event.rawY - downRawY
 
-                val totalDx =
-                    event.rawX - downRawX
+                when (gesture) {
+                    Gesture.HOLD -> {
+                        if (dragging) {
+                            dragBy(event)
+                            return true
+                        }
+                        if (state != State.RECORDING) return true
 
-                val totalDy =
-                    event.rawY - downRawY
+                        // Only a quick move right after the touch moves the button; later the
+                        // finger is sliding to the lock or toward "cancel".
+                        if (event.eventTime - event.downTime <= DRAG_WINDOW_MS) {
+                            if (abs(totalDx) > touchSlop || abs(totalDy) > touchSlop) {
+                                startDrag(event)
+                            }
+                            return true
+                        }
 
-            /*
-             * Use Android's standard touch slop.
-             *
-             * This avoids interpreting tiny finger movements
-             * as a drag.
-             */
-                if (!dragging) {
-                    // Once recording is under way the finger may wander: only a quick
-                    // move right after the touch turns the gesture into a drag.
-                    if (event.eventTime - event.downTime > DRAG_WINDOW_MS) {
+                        val inward = (totalDx * inwardSign).coerceAtLeast(0f)
+                        val up = (totalDy * lockSign).coerceAtLeast(0f)
+                        when {
+                            up >= lockDistance && up >= inward -> {
+                                gesture = Gesture.DONE
+                                onSwipe?.invoke(0f, 0f)
+                                pressOut()
+                                handsFree = true
+                                onLock?.invoke()
+                            }
+                            inward >= cancelDistance && inward > up -> {
+                                gesture = Gesture.DONE
+                                recordingForCurrentGesture = false
+                                onSwipe?.invoke(0f, 0f)
+                                pressOut()
+                                onCancel?.invoke()
+                            }
+                            else -> onSwipe?.invoke(if (inward > up) inward else 0f, if (up >= inward) up else 0f)
+                        }
                         return true
                     }
 
-                    val distanceExceeded =
-                        abs(totalDx) > touchSlop ||
-                            abs(totalDy) > touchSlop
-
-                    if (!distanceExceeded) {
+                    Gesture.TAP_HANDS_FREE -> {
+                        val inward = (totalDx * inwardSign).coerceAtLeast(0f)
+                        if (inward >= cancelDistance) {
+                            gesture = Gesture.DONE
+                            onSwipe?.invoke(0f, 0f)
+                            pressOut()
+                            onCancel?.invoke()
+                        } else {
+                            onSwipe?.invoke(inward, 0f)
+                        }
                         return true
                     }
 
-                /*
-                 * The user actually wants to move the button.
-                 *
-                 * Stop recording immediately and switch
-                 * the current gesture to dragging.
-                 */
-                    dragging = true
-
-                    if (recordingForCurrentGesture) {
-                        recordingForCurrentGesture = false
-
-                        setState(State.IDLE)
-                        onRecordingStop?.invoke()
-                    }
-
-                    animate()
-                        .scaleX(1f)
-                        .scaleY(1f)
-                        .setDuration(80L)
-                        .start()
-
-                    onDragStart?.invoke()
-
-                /*
-                 * Don't send the whole distance from ACTION_DOWN.
-                 * The owner receives movement starting from this point.
-                 */
-                    lastRawX = event.rawX
-                    lastRawY = event.rawY
-
-                    return true
+                    else -> return true
                 }
-
-            /*
-             * Smooth drag:
-             *
-             * Instead of calculating the complete position and
-             * maintaining another coordinate system here, only
-             * report the actual movement since the previous event.
-             */
-                val dx =
-                    event.rawX - lastRawX
-
-                val dy =
-                    event.rawY - lastRawY
-
-                if (dx != 0f || dy != 0f) {
-                    onDrag?.invoke(dx, dy)
-                }
-
-                lastRawX = event.rawX
-                lastRawY = event.rawY
-
-                return true
             }
 
             MotionEvent.ACTION_UP -> {
-                finishGesture(cancelled = false)
+                finishGesture(cancelled = false, event = event)
                 return true
             }
 
             MotionEvent.ACTION_CANCEL -> {
-                finishGesture(cancelled = true)
+                finishGesture(cancelled = true, event = event)
                 return true
             }
         }
@@ -323,37 +344,72 @@ class RecordingButton(
         return true
     }
 
-    private fun finishGesture(cancelled: Boolean) {
-        val wasDragging = dragging
-        val wasRecording =
-            recordingForCurrentGesture
+    private fun startDrag(event: MotionEvent) {
+        // The user wants to move the button: drop the recording that the touch started.
+        dragging = true
+        if (recordingForCurrentGesture) {
+            recordingForCurrentGesture = false
+            setState(State.IDLE)
+            onRecordingStop?.invoke()
+        }
+        pressOut()
+        onDragStart?.invoke()
+        // The owner gets movement from this point on, not the whole distance from the touch.
+        lastRawX = event.rawX
+        lastRawY = event.rawY
+    }
 
+    private fun dragBy(event: MotionEvent) {
+        // Deltas since the previous event; the owner decides where the window goes.
+        val dx = event.rawX - lastRawX
+        val dy = event.rawY - lastRawY
+        if (dx != 0f || dy != 0f) {
+            onDrag?.invoke(dx, dy)
+        }
+        lastRawX = event.rawX
+        lastRawY = event.rawY
+    }
+
+    private fun pressIn() {
+        animate().scaleX(PRESSED_SCALE).scaleY(PRESSED_SCALE).setDuration(80L).start()
+    }
+
+    private fun pressOut() {
+        animate().scaleX(1f).scaleY(1f).setDuration(80L).start()
+    }
+
+    private fun finishGesture(
+        cancelled: Boolean,
+        event: MotionEvent,
+    ) {
+        val wasGesture = gesture
+        val wasDragging = dragging
+        val wasRecording = recordingForCurrentGesture
+        gesture = Gesture.NONE
         dragging = false
         recordingForCurrentGesture = false
-
-        animate()
-            .scaleX(1f)
-            .scaleY(1f)
-            .setDuration(80L)
-            .start()
+        pressOut()
 
         when {
-            wasDragging -> {
-                onDragEnd?.invoke()
+            wasDragging -> onDragEnd?.invoke()
+
+            wasGesture == Gesture.HOLD && wasRecording -> {
+                onSwipe?.invoke(0f, 0f)
+                // The recorder may have stopped by itself (5-minute limit) under the finger.
+                if (state == State.RECORDING) {
+                    setState(State.PROCESSING)
+                    onRecordingStop?.invoke()
+                }
             }
 
-            wasRecording -> {
-                setState(State.PROCESSING)
-                onRecordingStop?.invoke()
-            }
-
-            cancelled -> {
-            /*
-             * Nothing else to do.
-             *
-             * The recording callback has already been sent
-             * if recording was active.
-             */
+            wasGesture == Gesture.TAP_HANDS_FREE -> {
+                onSwipe?.invoke(0f, 0f)
+                val moved = abs(event.rawX - downRawX) > touchSlop || abs(event.rawY - downRawY) > touchSlop
+                if (!cancelled && !moved && state == State.RECORDING) {
+                    handsFree = false
+                    setState(State.PROCESSING)
+                    onRecordingStop?.invoke()
+                }
             }
         }
     }
@@ -378,6 +434,16 @@ class RecordingButton(
                 floatArrayOf(0f, 0.55f, 1f),
                 Shader.TileMode.CLAMP,
             )
+        redShader =
+            LinearGradient(
+                c - r,
+                c - r,
+                c + r,
+                c + r,
+                intArrayOf(0xFFFF8A80.toInt(), 0xFFE53935.toInt(), 0xFFB71C1C.toInt()),
+                floatArrayOf(0f, 0.55f, 1f),
+                Shader.TileMode.CLAMP,
+            )
     }
 
     override fun onDraw(canvas: Canvas) {
@@ -390,13 +456,22 @@ class RecordingButton(
         canvas.scale(sizeScale, sizeScale, c, c)
         val t = (SystemClock.uptimeMillis() - animationStart).toFloat()
 
+        val red = state == State.RECORDING
+
+        if (barSide != 0 && state == State.RECORDING) {
+            // The end of the recording bar, under the circle (see [barSide]).
+            val h = barHeightDp * density / 2f
+            val edge = if (barSide < 0) c - width / (2f * sizeScale) else c + width / (2f * sizeScale)
+            canvas.drawRect(minOf(edge, c), c - h, maxOf(edge, c), c + h, barPaint)
+        }
+
         if (state == State.RECORDING) {
             // Glow that follows the voice, on the same dB scale as the pill.
             val raw = level()
             val loud = raw.coerceIn(0f, 1f)
             smoothLevel += (loud - smoothLevel) * 0.3f
             effectPaint.style = Paint.Style.FILL
-            effectPaint.color = 0x4063CF62
+            effectPaint.color = if (red) 0x40EF5350 else 0x4063CF62
             canvas.drawCircle(c, c, r * (1.04f + 0.3f * smoothLevel), effectPaint)
 
             // Two halos spreading out from the button, brighter while speaking.
@@ -405,18 +480,29 @@ class RecordingButton(
             for (k in 0..1) {
                 val p = ((t / RING_PERIOD_MS) + k * 0.5f) % 1f
                 val strength = 0.2f + 0.6f * smoothLevel
-                effectPaint.color = ((strength * (1f - p) * 255).toInt() shl 24) or 0x1FA03A
+                effectPaint.color = ((strength * (1f - p) * 255).toInt() shl 24) or (if (red) 0xE53935 else 0x1FA03A)
                 canvas.drawCircle(c, c, r * (1f + 0.34f * p), effectPaint)
             }
         }
 
         canvas.drawCircle(c, c + 2 * density, r, shadowPaint.apply { this.alpha = alpha / 5 })
-        paint.shader = greenShader
+        paint.shader = if (red) redShader else greenShader
         paint.alpha = alpha
         canvas.drawCircle(c, c, r, paint)
 
         when (state) {
-            State.RECORDING -> drawMicrophone(canvas = canvas, cx = c, cy = c)
+            State.RECORDING ->
+                if (handsFree) {
+                    // Fits the word inside the circle: "Вставить" and "Insert" alike.
+                    val word = text(R.string.button_insert)
+                    labelPaint.textSize = 16 * density
+                    val maxWidth = r * 1.6f
+                    val w = labelPaint.measureText(word)
+                    if (w > maxWidth) labelPaint.textSize *= maxWidth / w
+                    canvas.drawText(word, c, c - (labelPaint.descent() + labelPaint.ascent()) / 2, labelPaint)
+                } else {
+                    drawMicrophone(canvas = canvas, cx = c, cy = c)
+                }
             State.PROCESSING -> {
                 val sweepStart = (t / 900f * 360f) % 360f
                 val o = r + 7 * density
@@ -432,22 +518,24 @@ class RecordingButton(
         canvas.restore()
     }
 
+    /** In the language chosen in the app, not only the phone's. */
+    private fun text(id: Int) = AppLanguage.wrap(context.applicationContext).getString(id)
+
+    private fun currentDescription() =
+        when (state) {
+            State.IDLE -> R.string.button_idle
+            State.RECORDING -> R.string.button_recording
+            State.PROCESSING -> R.string.button_processing
+        }
+
     fun setState(value: State) {
         state = value
+        if (value != State.RECORDING) {
+            handsFree = false
+            barSide = 0
+        }
 
-        contentDescription =
-            context.getString(
-                when (value) {
-                    State.IDLE ->
-                        R.string.button_idle
-
-                    State.RECORDING ->
-                        R.string.button_recording
-
-                    State.PROCESSING ->
-                        R.string.button_processing
-                },
-            )
+        contentDescription = text(currentDescription())
 
         iconPaint.alpha = 255
         strokePaint.alpha = 255
@@ -467,6 +555,7 @@ class RecordingButton(
 
         dragging = false
         recordingForCurrentGesture = false
+        gesture = Gesture.NONE
 
         animate().cancel()
 
