@@ -104,6 +104,9 @@ class RecordingButton(
     /** -1 when the middle of the screen is to the left of the button, +1 when to the right. */
     var inwardSign = -1f
 
+    /** Slides to the lock and to "cancel"; off in the settings. */
+    var gestures = true
+
     /** -1 when the lock is above the button, +1 when it had to go below. */
     var lockSign = -1f
 
@@ -290,6 +293,8 @@ class RecordingButton(
                             }
                             return true
                         }
+
+                        if (!gestures) return true
 
                         val inward = (totalDx * inwardSign).coerceAtLeast(0f)
                         val up = (totalDy * lockSign).coerceAtLeast(0f)

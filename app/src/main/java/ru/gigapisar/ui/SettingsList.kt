@@ -23,6 +23,7 @@ import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.RadioButtonChecked
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Translate
+import androidx.compose.material.icons.outlined.SwipeUp
 import androidx.compose.material.icons.outlined.Vibration
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
@@ -62,6 +63,7 @@ internal fun SettingsList(
     vibrationEnabled: Boolean,
     noClipboard: Boolean = false,
     fabScale: Float = 1f,
+    fabGestures: Boolean = true,
     hiddenAppNames: List<String> = emptyList(),
     microphoneGranted: Boolean,
     accessibilityEnabled: Boolean,
@@ -71,6 +73,7 @@ internal fun SettingsList(
     onVibration: (Boolean) -> Unit,
     onNoClipboard: (Boolean) -> Unit = {},
     onFabScale: (Float) -> Unit = {},
+    onFabGestures: (Boolean) -> Unit = {},
     onOpenHiddenApps: () -> Unit = {},
     onRequestMicrophone: () -> Unit,
     onOpenAccessibilitySettings: () -> Unit,
@@ -94,6 +97,13 @@ internal fun SettingsList(
         )
         if (virtualButtonVisible) {
             FabSizeRow(scale = fabScale, onScale = onFabScale)
+            SwitchRow(
+                icon = Icons.Outlined.SwipeUp,
+                title = R.string.fab_gestures,
+                subtitle = R.string.fab_gestures_hint,
+                checked = fabGestures,
+                onChange = onFabGestures,
+            )
             FabHiddenAppsRow(names = hiddenAppNames, onOpen = onOpenHiddenApps)
         }
         SwitchRow(

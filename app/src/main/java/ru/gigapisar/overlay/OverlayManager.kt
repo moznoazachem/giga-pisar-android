@@ -251,6 +251,13 @@ class OverlayManager(
     val handsFree: Boolean
         get() = button.handsFree
 
+    /** Off in the settings: hold, speak, let go, as before; no slides and no strip. */
+    var gestures: Boolean
+        get() = button.gestures
+        set(value) {
+            button.gestures = value
+        }
+
     fun setProcessing() {
         hideChrome()
         button.setState(

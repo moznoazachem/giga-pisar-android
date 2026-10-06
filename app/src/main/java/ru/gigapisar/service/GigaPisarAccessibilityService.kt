@@ -91,6 +91,7 @@ class GigaPisarAccessibilityService : AccessibilityService() {
     private var virtualButtonEnabled = true
     private var volumeKeyEnabled = true
     private var vibrationEnabled = true
+    private var fabGestures = true
     private var noClipboard = false
     private var fabHiddenApps: Set<String> = emptySet()
     private var fabScale = 1f
@@ -241,6 +242,15 @@ class GigaPisarAccessibilityService : AccessibilityService() {
             SettingsRepository
                 .vibrationEnabled(this@GigaPisarAccessibilityService)
                 .collectLatest { enabled -> vibrationEnabled = enabled }
+        }
+
+        serviceScope.launch {
+            SettingsRepository
+                .fabGestures(this@GigaPisarAccessibilityService)
+                .collectLatest { enabled ->
+                    fabGestures = enabled
+                    overlay.gestures = enabled
+                }
         }
 
         serviceScope.launch {
@@ -468,7 +478,7 @@ class GigaPisarAccessibilityService : AccessibilityService() {
 
         recording = true
         overlay.setLevelSource { audioRecorder.level }
-        if (fromButton) {
+        if (fromButton && fabGestures) {
             // The strip next to the button shows the time and the way to cancel.
             overlay.setRecording()
         } else {

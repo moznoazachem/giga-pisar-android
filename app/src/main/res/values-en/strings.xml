@@ -65,6 +65,8 @@
     <string name="volume_key_hint">In a text field, hold volume down and speak. Elsewhere it just lowers the volume</string>
     <string name="vibration">Vibration</string>
     <string name="vibration_hint">A short buzz when recording starts and ends</string>
+    <string name="fab_gestures">Button gestures</string>
+    <string name="fab_gestures_hint">Up to the lock: hands-free. Sideways: cancel</string>
 
     <string name="section_insertion">Where the text goes</string>
     <string name="mode_text_field_hint">The text appears at the cursor</string>
