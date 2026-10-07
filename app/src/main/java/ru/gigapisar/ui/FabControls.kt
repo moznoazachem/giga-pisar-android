@@ -42,7 +42,6 @@ import ru.gigapisar.settings.SettingsRepository
 internal fun FabIcon(
     diameter: Float,
     modifier: Modifier = Modifier,
-    blue: Boolean = false,
 ) {
     Canvas(modifier = modifier.size(diameter.dp)) {
         val r = size.minDimension / 2
@@ -50,9 +49,9 @@ internal fun FabIcon(
         drawCircle(Color(0x33000000), r, c.copy(y = c.y + r * 0.05f))
         drawCircle(
             Brush.linearGradient(
-                0f to Color(if (blue) 0xFF7FE3F0 else 0xFFA8E063),
-                0.55f to Color(if (blue) 0xFF1FA3D6 else 0xFF1FA03A),
-                1f to Color(if (blue) 0xFF0B6FA8 else 0xFF008F92),
+                0f to Color(0xFFA8E063),
+                0.55f to Color(0xFF1FA03A),
+                1f to Color(0xFF008F92),
                 start = Offset(c.x - r, c.y - r),
                 end = Offset(c.x + r, c.y + r),
             ),
@@ -81,7 +80,6 @@ internal fun FabIcon(
 internal fun FabSizeRow(
     scale: Float,
     onScale: (Float) -> Unit,
-    blue: Boolean = false,
 ) {
     var value by remember { mutableFloatStateOf(scale) }
     LaunchedEffect(scale) { value = scale }
@@ -116,42 +114,7 @@ internal fun FabSizeRow(
                 }
             }
             Box(modifier = Modifier.width(76.dp), contentAlignment = Alignment.Center) {
-                FabIcon(diameter = 44f * value, blue = blue)
-            }
-        }
-    }
-}
-
-/** Button colour: the site's green or turquoise blue, each shown as the button itself. */
-@Composable
-internal fun FabColorRow(
-    blue: Boolean,
-    onBlue: (Boolean) -> Unit,
-) {
-    Column(modifier = Modifier.fillMaxWidth().padding(start = 56.dp, end = 16.dp, top = 4.dp, bottom = 8.dp)) {
-        Text(stringResource(R.string.fab_color), style = MaterialTheme.typography.bodyLarge)
-        Row(modifier = Modifier.padding(top = 8.dp)) {
-            for ((isBlue, label) in listOf(false to R.string.fab_color_green, true to R.string.fab_color_blue)) {
-                val selected = isBlue == blue
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.padding(end = 20.dp).clickable { onBlue(isBlue) },
-                ) {
-                    Box(contentAlignment = Alignment.Center, modifier = Modifier.size(52.dp)) {
-                        if (selected) {
-                            val ring = MaterialTheme.colorScheme.primary
-                            Canvas(modifier = Modifier.size(52.dp)) {
-                                drawCircle(ring, size.minDimension / 2 - 1.5.dp.toPx(), style = Stroke(width = 2.5.dp.toPx()))
-                            }
-                        }
-                        FabIcon(diameter = 40f, blue = isBlue)
-                    }
-                    Text(
-                        stringResource(label),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                FabIcon(diameter = 44f * value)
             }
         }
     }

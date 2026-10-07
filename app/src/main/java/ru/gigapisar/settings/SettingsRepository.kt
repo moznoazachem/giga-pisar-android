@@ -44,9 +44,6 @@ object SettingsRepository {
     private val fabGesturesKey =
         booleanPreferencesKey("fab_gestures")
 
-    private val fabBlueKey =
-        booleanPreferencesKey("fab_blue")
-
     private const val BRAIN_MODEL_PREFIX = "brain_model_for_"
 
     private val brainEnabledKey = booleanPreferencesKey("brain_enabled")
@@ -153,21 +150,6 @@ object SettingsRepository {
         context.settingsDataStore.data.map { preferences ->
             preferences[fabGesturesKey] ?: true
         }
-
-    /** Turquoise-blue floating button instead of the green one. */
-    fun fabBlue(context: Context): Flow<Boolean> =
-        context.settingsDataStore.data.map { preferences ->
-            preferences[fabBlueKey] ?: false
-        }
-
-    suspend fun setFabBlue(
-        context: Context,
-        blue: Boolean,
-    ) {
-        context.settingsDataStore.edit { preferences ->
-            preferences[fabBlueKey] = blue
-        }
-    }
 
     suspend fun setFabGestures(
         context: Context,
