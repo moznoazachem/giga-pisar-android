@@ -180,10 +180,10 @@ class RecordingButton(
             style = Paint.Style.STROKE
             strokeWidth = 3f * density
             strokeCap = Paint.Cap.ROUND
-            color = 0xFF1FA03A.toInt()
+            color = 0xFF0B6FA8.toInt()
         }
 
-    private var greenShader: Shader? = null
+    private var idleShader: Shader? = null
     private var redShader: Shader? = null
     private val labelPaint =
         Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -428,14 +428,14 @@ class RecordingButton(
         super.onSizeChanged(w, h, oldw, oldh)
         val c = w / 2f
         val r = circleRadius
-        // The website's palette: light green to teal.
-        greenShader =
+        // Turquoise blue: light cyan to deep blue.
+        idleShader =
             LinearGradient(
                 c - r,
                 c - r,
                 c + r,
                 c + r,
-                intArrayOf(0xFFA8E063.toInt(), 0xFF1FA03A.toInt(), 0xFF008F92.toInt()),
+                intArrayOf(0xFF7FE3F0.toInt(), 0xFF1FA3D6.toInt(), 0xFF0B6FA8.toInt()),
                 floatArrayOf(0f, 0.55f, 1f),
                 Shader.TileMode.CLAMP,
             )
@@ -491,7 +491,7 @@ class RecordingButton(
         }
 
         canvas.drawCircle(c, c + 2 * density, r, shadowPaint.apply { this.alpha = alpha / 5 })
-        paint.shader = if (red) redShader else greenShader
+        paint.shader = if (red) redShader else idleShader
         paint.alpha = alpha
         canvas.drawCircle(c, c, r, paint)
 

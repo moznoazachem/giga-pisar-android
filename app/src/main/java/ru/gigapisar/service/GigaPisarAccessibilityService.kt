@@ -276,8 +276,10 @@ class GigaPisarAccessibilityService : AccessibilityService() {
                     true
                 } else if (event.repeatCount != 0) {
                     false
-                } else if (insertionMode == InsertionMode.TEXT_FIELD && findFocusedEditable() == null) {
-                    // No text field open: the key is an ordinary volume key, Android handles it.
+                } else if (onLockScreen() ||
+                    insertionMode == InsertionMode.TEXT_FIELD && findFocusedEditable() == null
+                ) {
+                    // No text field open (or only the lock screen's PIN): an ordinary volume key.
                     false
                 } else {
                     volumeKeyPressed = true
@@ -365,6 +367,10 @@ class GigaPisarAccessibilityService : AccessibilityService() {
         updateButtonVisibility()
     }
 
+    /** The PIN or password field of the lock screen is a text field too, but not one for dictation. */
+    private fun onLockScreen(): Boolean =
+        getSystemService(android.app.KeyguardManager::class.java)?.isKeyguardLocked == true
+
     private fun updateButtonVisibility() {
         val shouldShow =
             fabPreviewing ||
@@ -375,7 +381,8 @@ class GigaPisarAccessibilityService : AccessibilityService() {
                     insertionMode == InsertionMode.CLIPBOARD ||
                         focusedNode != null
                 ) &&
-                !hiddenInCurrentApp()
+                !hiddenInCurrentApp() &&
+                !onLockScreen()
 
         overlay.setButtonVisible(shouldShow)
 

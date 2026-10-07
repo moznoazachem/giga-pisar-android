@@ -49,9 +49,9 @@ internal fun FabIcon(
         drawCircle(Color(0x33000000), r, c.copy(y = c.y + r * 0.05f))
         drawCircle(
             Brush.linearGradient(
-                0f to Color(0xFFA8E063),
-                0.55f to Color(0xFF1FA03A),
-                1f to Color(0xFF008F92),
+                0f to Color(0xFF7FE3F0),
+                0.55f to Color(0xFF1FA3D6),
+                1f to Color(0xFF0B6FA8),
                 start = Offset(c.x - r, c.y - r),
                 end = Offset(c.x + r, c.y + r),
             ),
