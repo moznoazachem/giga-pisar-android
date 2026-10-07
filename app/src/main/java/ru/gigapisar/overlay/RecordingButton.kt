@@ -104,6 +104,14 @@ class RecordingButton(
     /** -1 when the middle of the screen is to the left of the button, +1 when to the right. */
     var inwardSign = -1f
 
+    /** Turquoise blue instead of the site's green, when not recording (a setting). */
+    var blue = false
+        set(value) {
+            field = value
+            arcPaint.color = if (value) 0xFF0B6FA8.toInt() else 0xFF1FA03A.toInt()
+            invalidate()
+        }
+
     /** Slides to the lock and to "cancel"; off in the settings. */
     var gestures = true
 
@@ -185,6 +193,7 @@ class RecordingButton(
 
     private var greenShader: Shader? = null
     private var redShader: Shader? = null
+    private var blueShader: Shader? = null
     private val labelPaint =
         Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.WHITE
@@ -439,6 +448,16 @@ class RecordingButton(
                 floatArrayOf(0f, 0.55f, 1f),
                 Shader.TileMode.CLAMP,
             )
+        blueShader =
+            LinearGradient(
+                c - r,
+                c - r,
+                c + r,
+                c + r,
+                intArrayOf(0xFF7FE3F0.toInt(), 0xFF1FA3D6.toInt(), 0xFF0B6FA8.toInt()),
+                floatArrayOf(0f, 0.55f, 1f),
+                Shader.TileMode.CLAMP,
+            )
         redShader =
             LinearGradient(
                 c - r,
@@ -491,7 +510,7 @@ class RecordingButton(
         }
 
         canvas.drawCircle(c, c + 2 * density, r, shadowPaint.apply { this.alpha = alpha / 5 })
-        paint.shader = if (red) redShader else greenShader
+        paint.shader = if (red) redShader else if (blue) blueShader else greenShader
         paint.alpha = alpha
         canvas.drawCircle(c, c, r, paint)
 

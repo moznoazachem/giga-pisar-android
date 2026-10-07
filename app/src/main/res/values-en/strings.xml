@@ -67,6 +67,9 @@
     <string name="vibration_hint">A short buzz when recording starts and ends</string>
     <string name="fab_gestures">Button gestures</string>
     <string name="fab_gestures_hint">Up to the lock: hands-free. Sideways: cancel</string>
+    <string name="fab_color">Button colour</string>
+    <string name="fab_color_green">Green</string>
+    <string name="fab_color_blue">Blue</string>
 
     <string name="section_insertion">Where the text goes</string>
     <string name="mode_text_field_hint">The text appears at the cursor</string>

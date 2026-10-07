@@ -46,6 +46,7 @@ fun MainScreen(activity: ComponentActivity) {
     var volumeKeyEnabled by remember { mutableStateOf(true) }
     var vibrationEnabled by remember { mutableStateOf(true) }
     var fabGestures by remember { mutableStateOf(true) }
+    var fabBlue by remember { mutableStateOf(false) }
     var noClipboard by remember { mutableStateOf(false) }
     var fabScale by remember { mutableStateOf(1f) }
     var fabHidden by remember { mutableStateOf<Set<String>>(emptySet()) }
@@ -84,6 +85,9 @@ fun MainScreen(activity: ComponentActivity) {
     }
     LaunchedEffect(context) {
         SettingsRepository.fabGestures(context).collect { fabGestures = it }
+    }
+    LaunchedEffect(context) {
+        SettingsRepository.fabBlue(context).collect { fabBlue = it }
     }
     LaunchedEffect(context) {
         SettingsRepository.noClipboard(context).collect { noClipboard = it }
@@ -167,6 +171,8 @@ fun MainScreen(activity: ComponentActivity) {
                     fabScale = fabScale,
                     onFabScale = { scope.launch { SettingsRepository.setFabScale(context, it) } },
                     fabGestures = fabGestures,
+                    fabBlue = fabBlue,
+                    onFabBlue = { scope.launch { SettingsRepository.setFabBlue(context, it) } },
                     onFabGestures = { scope.launch { SettingsRepository.setFabGestures(context, it) } },
                     hiddenAppNames = hiddenAppNames,
                     onOpenHiddenApps = { page = Page.HIDDEN_APPS },

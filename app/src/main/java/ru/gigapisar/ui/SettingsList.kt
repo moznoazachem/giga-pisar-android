@@ -64,6 +64,7 @@ internal fun SettingsList(
     noClipboard: Boolean = false,
     fabScale: Float = 1f,
     fabGestures: Boolean = true,
+    fabBlue: Boolean = false,
     hiddenAppNames: List<String> = emptyList(),
     microphoneGranted: Boolean,
     accessibilityEnabled: Boolean,
@@ -74,6 +75,7 @@ internal fun SettingsList(
     onNoClipboard: (Boolean) -> Unit = {},
     onFabScale: (Float) -> Unit = {},
     onFabGestures: (Boolean) -> Unit = {},
+    onFabBlue: (Boolean) -> Unit = {},
     onOpenHiddenApps: () -> Unit = {},
     onRequestMicrophone: () -> Unit,
     onOpenAccessibilitySettings: () -> Unit,
@@ -96,7 +98,8 @@ internal fun SettingsList(
             onChange = onVirtualButton,
         )
         if (virtualButtonVisible) {
-            FabSizeRow(scale = fabScale, onScale = onFabScale)
+            FabSizeRow(scale = fabScale, onScale = onFabScale, blue = fabBlue)
+            FabColorRow(blue = fabBlue, onBlue = onFabBlue)
             SwitchRow(
                 icon = Icons.Outlined.SwipeUp,
                 title = R.string.fab_gestures,

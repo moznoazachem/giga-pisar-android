@@ -251,6 +251,13 @@ class OverlayManager(
     val handsFree: Boolean
         get() = button.handsFree
 
+    /** Turquoise-blue button instead of the green one (a setting). */
+    var blue: Boolean
+        get() = button.blue
+        set(value) {
+            button.blue = value
+        }
+
     /** Off in the settings: hold, speak, let go, as before; no slides and no strip. */
     var gestures: Boolean
         get() = button.gestures

@@ -255,6 +255,12 @@ class GigaPisarAccessibilityService : AccessibilityService() {
 
         serviceScope.launch {
             SettingsRepository
+                .fabBlue(this@GigaPisarAccessibilityService)
+                .collectLatest { blue -> overlay.blue = blue }
+        }
+
+        serviceScope.launch {
+            SettingsRepository
                 .brain(this@GigaPisarAccessibilityService)
                 .collectLatest { settings -> brainSettings = settings }
         }
