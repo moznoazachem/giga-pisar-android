@@ -41,6 +41,9 @@ object SettingsRepository {
     private val vibrationEnabledKey =
         booleanPreferencesKey("vibration_enabled")
 
+    private val fabGesturesKey =
+        booleanPreferencesKey("fab_gestures")
+
     private const val BRAIN_MODEL_PREFIX = "brain_model_for_"
 
     private val brainEnabledKey = booleanPreferencesKey("brain_enabled")
@@ -139,6 +142,21 @@ object SettingsRepository {
     ) {
         context.settingsDataStore.edit { preferences ->
             preferences[volumeKeyEnabledKey] = enabled
+        }
+    }
+
+    /** Slide up for hands-free and toward the middle to cancel, on the floating button. */
+    fun fabGestures(context: Context): Flow<Boolean> =
+        context.settingsDataStore.data.map { preferences ->
+            preferences[fabGesturesKey] ?: true
+        }
+
+    suspend fun setFabGestures(
+        context: Context,
+        enabled: Boolean,
+    ) {
+        context.settingsDataStore.edit { preferences ->
+            preferences[fabGesturesKey] = enabled
         }
     }
 

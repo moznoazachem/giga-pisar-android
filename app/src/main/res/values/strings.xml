@@ -35,6 +35,8 @@
     <string name="button_idle">Голосовой ввод</string>
     <string name="button_recording">Идёт запись</string>
     <string name="button_processing">Распознавание</string>
+    <string name="button_insert">Вставить</string>
+    <string name="bar_cancel">Отмена</string>
 
     <string name="setup_step">Шаг %1$d из 3</string>
     <string name="setup_mic_title">Разрешите микрофон</string>
@@ -63,6 +65,8 @@
     <string name="volume_key_hint">В поле ввода зажмите громкость вниз и говорите. Вне поля она просто убавляет звук</string>
     <string name="vibration">Вибрация</string>
     <string name="vibration_hint">Коротко в начале и в конце записи</string>
+    <string name="fab_gestures">Жесты кнопки</string>
+    <string name="fab_gestures_hint">Вверх к замку: запись без рук. В сторону: отмена</string>
 
     <string name="section_insertion">Куда вставлять текст</string>
     <string name="mode_text_field_hint">Текст появляется там, где стоит курсор</string>
@@ -143,4 +147,5 @@
     <string name="fab_hidden_more">%1$s и ещё %2$d</string>
     <string name="fab_hidden_search">Найти приложение</string>
     <string name="fab_hidden_hint">В отмеченных приложениях плавающая кнопка не появляется. Кнопка громкости там работает как обычно.</string>
+    <string name="download_no_network">Телефон не может связаться с сервером. Проверьте интернет: Wi-Fi может быть подключён без доступа в сеть. Если включён «Частный DNS», поставьте «Автоматически» или попробуйте мобильный интернет.</string>
 </resources>

@@ -91,6 +91,7 @@ class GigaPisarAccessibilityService : AccessibilityService() {
     private var virtualButtonEnabled = true
     private var volumeKeyEnabled = true
     private var vibrationEnabled = true
+    private var fabGestures = true
     private var noClipboard = false
     private var fabHiddenApps: Set<String> = emptySet()
     private var fabScale = 1f
@@ -153,10 +154,16 @@ class GigaPisarAccessibilityService : AccessibilityService() {
             OverlayManager(
                 this,
                 onRecordingStart = {
-                    handleRecordingStart()
+                    handleRecordingStart(fromButton = true)
                 },
                 onRecordingStop = {
                     handleRecordingStop()
+                },
+                onRecordingCancel = {
+                    handleRecordingCancel()
+                },
+                onLocked = {
+                    buzz()
                 },
             )
 
@@ -239,6 +246,15 @@ class GigaPisarAccessibilityService : AccessibilityService() {
 
         serviceScope.launch {
             SettingsRepository
+                .fabGestures(this@GigaPisarAccessibilityService)
+                .collectLatest { enabled ->
+                    fabGestures = enabled
+                    overlay.gestures = enabled
+                }
+        }
+
+        serviceScope.launch {
+            SettingsRepository
                 .brain(this@GigaPisarAccessibilityService)
                 .collectLatest { settings -> brainSettings = settings }
         }
@@ -260,8 +276,10 @@ class GigaPisarAccessibilityService : AccessibilityService() {
                     true
                 } else if (event.repeatCount != 0) {
                     false
-                } else if (insertionMode == InsertionMode.TEXT_FIELD && findFocusedEditable() == null) {
-                    // No text field open: the key is an ordinary volume key, Android handles it.
+                } else if (onLockScreen() ||
+                    insertionMode == InsertionMode.TEXT_FIELD && findFocusedEditable() == null
+                ) {
+                    // No text field open (or only the lock screen's PIN): an ordinary volume key.
                     false
                 } else {
                     volumeKeyPressed = true
@@ -313,10 +331,13 @@ class GigaPisarAccessibilityService : AccessibilityService() {
         event ?: return
 
         // The undo offer goes away once the user types or leaves; not on our own insertion.
+        // The "Copy" offer stays until its time is up or the user leaves the app, not on typing;
+        // events from Pisar's own windows (the pill itself) never count.
         if (pill.showsAction &&
+            event.packageName?.toString() != packageName &&
             SystemClock.uptimeMillis() - undoShownAt > 800 &&
             (
-                event.eventType == AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED ||
+                (pillOffersUndo && event.eventType == AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED) ||
                     event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
             )
         ) {
@@ -346,15 +367,22 @@ class GigaPisarAccessibilityService : AccessibilityService() {
         updateButtonVisibility()
     }
 
+    /** The PIN or password field of the lock screen is a text field too, but not one for dictation. */
+    private fun onLockScreen(): Boolean =
+        getSystemService(android.app.KeyguardManager::class.java)?.isKeyguardLocked == true
+
     private fun updateButtonVisibility() {
         val shouldShow =
             fabPreviewing ||
+                // A hands-free recording is ended only with the button: it stays until then.
+                recording && overlay.handsFree ||
                 virtualButtonEnabled &&
                 (
                     insertionMode == InsertionMode.CLIPBOARD ||
                         focusedNode != null
                 ) &&
-                !hiddenInCurrentApp()
+                !hiddenInCurrentApp() &&
+                !onLockScreen()
 
         overlay.setButtonVisible(shouldShow)
 
@@ -411,7 +439,7 @@ class GigaPisarAccessibilityService : AccessibilityService() {
         }
     }
 
-    private fun handleRecordingStart() {
+    private fun handleRecordingStart(fromButton: Boolean = false) {
         if (recording) {
             return
         }
@@ -457,9 +485,28 @@ class GigaPisarAccessibilityService : AccessibilityService() {
 
         recording = true
         overlay.setLevelSource { audioRecorder.level }
-        overlay.setRecording()
-        pill.showListening(focusedFieldBounds()) { audioRecorder.level }
+        if (fromButton && fabGestures) {
+            // The strip next to the button shows the time and the way to cancel.
+            overlay.setRecording()
+        } else {
+            overlay.setRecording(withHints = false)
+            pill.showListening(focusedFieldBounds()) { audioRecorder.level }
+        }
         buzz()
+    }
+
+    /** A slide toward "cancel" or a tap on it: the recording is thrown away, nothing is inserted. */
+    private fun handleRecordingCancel() {
+        if (!recording) {
+            overlay.setIdle()
+            return
+        }
+        recording = false
+        audioRecorder.cancel()
+        overlay.setIdle()
+        pill.hide()
+        buzz()
+        updateButtonVisibility()
     }
 
     private fun handleRecordingStop() {
@@ -533,6 +580,8 @@ class GigaPisarAccessibilityService : AccessibilityService() {
 
                                     if (!inserted) {
                                         // The text did not go in: it is not left on the clipboard, it is offered on request.
+                                        undoShownAt = SystemClock.uptimeMillis()
+                                        pillOffersUndo = false
                                         pill.showAction(
                                             ui().getString(if (noClipboard) R.string.no_direct_insert else R.string.paste_failed),
                                             ui().getString(R.string.copy_text),
@@ -612,6 +661,7 @@ class GigaPisarAccessibilityService : AccessibilityService() {
 
     /** When the undo offer went up: our own text change right after must not dismiss it. */
     private var undoShownAt = 0L
+    private var pillOffersUndo = false
 
     /**
      * "Мозг поправил · Вернуть" above the field for a few seconds. A tap puts back what was
@@ -624,6 +674,7 @@ class GigaPisarAccessibilityService : AccessibilityService() {
         insertion: TextInserter.Insertion?,
     ) {
         undoShownAt = SystemClock.uptimeMillis()
+        pillOffersUndo = true
         pill.showAction(
             ui().getString(R.string.brain_done),
             ui().getString(R.string.brain_undo),

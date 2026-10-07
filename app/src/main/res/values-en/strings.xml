@@ -35,6 +35,8 @@
     <string name="button_idle">Voice input</string>
     <string name="button_recording">Recording</string>
     <string name="button_processing">Recognizing</string>
+    <string name="button_insert">Insert</string>
+    <string name="bar_cancel">Cancel</string>
 
     <string name="setup_step">Step %1$d of 3</string>
     <string name="setup_mic_title">Allow the microphone</string>
@@ -63,6 +65,8 @@
     <string name="volume_key_hint">In a text field, hold volume down and speak. Elsewhere it just lowers the volume</string>
     <string name="vibration">Vibration</string>
     <string name="vibration_hint">A short buzz when recording starts and ends</string>
+    <string name="fab_gestures">Button gestures</string>
+    <string name="fab_gestures_hint">Up to the lock: hands-free. Sideways: cancel</string>
 
     <string name="section_insertion">Where the text goes</string>
     <string name="mode_text_field_hint">The text appears at the cursor</string>
@@ -143,4 +147,5 @@
     <string name="fab_hidden_more">%1$s and %2$d more</string>
     <string name="fab_hidden_search">Find an app</string>
     <string name="fab_hidden_hint">The floating button does not appear in the apps you tick. The volume key works there as usual.</string>
+    <string name="download_no_network">The phone cannot reach the server. Check the internet: Wi-Fi may be connected without access. If Private DNS is on, set it to Automatic or try mobile data.</string>
 </resources>

@@ -167,7 +167,16 @@ private fun ModelStep(onModelInstalled: () -> Unit) {
                             }
                             onModelInstalled()
                         } catch (e: Throwable) {
-                            error = e.message ?: e.javaClass.simpleName
+                            error =
+                                if (e is java.net.UnknownHostException ||
+                                    e is java.net.ConnectException ||
+                                    e is java.net.SocketTimeoutException
+                                ) {
+                                    // A DNS or connection failure reads like a server problem; it is the phone's network.
+                                    context.getString(R.string.download_no_network)
+                                } else {
+                                    e.message ?: e.javaClass.simpleName
+                                }
                         } finally {
                             downloading = false
                         }

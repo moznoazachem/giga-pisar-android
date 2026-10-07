@@ -11,6 +11,8 @@ class OverlayManager(
     private val service: AccessibilityService,
     onRecordingStart: () -> Unit,
     onRecordingStop: () -> Unit,
+    private val onRecordingCancel: () -> Unit,
+    private val onLocked: () -> Unit,
 ) {
     companion object {
         private const val POSITION_PREFERENCES = "overlay_position"
@@ -20,6 +22,7 @@ class OverlayManager(
         private const val BUTTON_SIZE_DP = 120
         private const val EDGE_MARGIN_DP = 0
         private const val TOP_MARGIN_DP = 96
+        private const val CIRCLE_RADIUS_DP = 43
     }
 
     private val density =
@@ -59,6 +62,43 @@ class OverlayManager(
             }
 
     private var attached = false
+
+    /*
+     * While recording: the strip with the time and "‹ ‹ Cancel" next to the button and the
+     * lock above it, each in its own window that takes no touches (the strip takes a tap on
+     * "Cancel" once hands-free). The button window was added first, so these never cover it:
+     * they are placed beside it, not over it.
+     */
+    private val bar = RecordingBar(service)
+    private val lock = LockBadge(service)
+    private var chromeShown = false
+    private var homeX = 0
+    private var homeY = 0
+    private var barMargin = (8 * density).roundToInt()
+
+    private val barParams =
+        WindowManager
+            .LayoutParams(
+                0,
+                ((RecordingBar.HEIGHT_DP + 2 * RecordingBar.SHADOW_DP) * density).roundToInt(),
+                WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                    WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
+                    WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+                PixelFormat.TRANSLUCENT,
+            ).apply { gravity = Gravity.TOP or Gravity.START }
+
+    private val lockParams =
+        WindowManager
+            .LayoutParams(
+                ((LockBadge.WIDTH_DP + 2 * LockBadge.SHADOW_DP) * density).roundToInt(),
+                ((LockBadge.HEIGHT_DP + 2 * LockBadge.SHADOW_DP) * density).roundToInt(),
+                WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                    WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
+                    WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+                PixelFormat.TRANSLUCENT,
+            ).apply { gravity = Gravity.TOP or Gravity.START }
 
 /*
  * Position at the moment when the current drag starts.
@@ -100,6 +140,27 @@ class OverlayManager(
 
         button.onDragEnd =
             ::savePosition
+
+        button.onSwipe = ::followSwipe
+
+        button.onLock = {
+            lock.locked = true
+            lock.progress = 0f
+            bar.handsFree = true
+            barParams.flags = barParams.flags and WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE.inv()
+            updateWindow(bar, barParams)
+            onLocked()
+        }
+
+        button.onCancel = {
+            hideChrome()
+            onRecordingCancel()
+        }
+
+        bar.onCancel = {
+            hideChrome()
+            onRecordingCancel()
+        }
     }
 
     fun attach() {
@@ -108,6 +169,7 @@ class OverlayManager(
         }
 
         restorePosition()
+        syncTargets()
 
         try {
             windowManager.addView(
@@ -133,6 +195,7 @@ class OverlayManager(
         if (visible) {
             button.showAnimated()
         } else {
+            hideChrome()
             button.hideAnimated()
         }
     }
@@ -171,25 +234,169 @@ class OverlayManager(
     }
 
     fun setIdle() {
+        hideChrome()
         button.setState(
             RecordingButton.State.IDLE,
         )
     }
 
-    fun setRecording() {
+    /** Hints (strip and lock) only when the button itself started the recording. */
+    fun setRecording(withHints: Boolean = true) {
         button.setState(
             RecordingButton.State.RECORDING,
         )
+        if (withHints) showChrome()
     }
 
+    val handsFree: Boolean
+        get() = button.handsFree
+
+    /** Off in the settings: hold, speak, let go, as before; no slides and no strip. */
+    var gestures: Boolean
+        get() = button.gestures
+        set(value) {
+            button.gestures = value
+        }
+
     fun setProcessing() {
+        hideChrome()
         button.setState(
             RecordingButton.State.PROCESSING,
         )
     }
 
+    /** Strip and lock next to the button; skipped while the button is hidden. */
+    private fun showChrome() {
+        if (!attached || button.visibility != android.view.View.VISIBLE) return
+        hideChrome()
+        homeX = params.x
+        homeY = params.y
+
+        val bounds = getScreenBounds()
+        val size = buttonSize
+        val centerX = homeX + size / 2
+        val centerY = homeY + size / 2
+        val left = centerX < bounds.width / 2
+        // The middle of the screen is where "cancel" lies.
+        button.inwardSign = if (left) 1f else -1f
+
+        val barHeight = barParams.height
+        val barWidth = if (left) bounds.width - barMargin - (homeX + size) else homeX - barMargin
+        if (barWidth >= (140 * density).roundToInt()) {
+            bar.side = if (left) 1 else -1
+            barParams.width = barWidth
+            barParams.x = if (left) homeX + size else barMargin
+            barParams.y = centerY - barHeight / 2
+            barParams.flags = barParams.flags or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
+            bar.restart()
+            addWindow(bar, barParams)
+            button.barSide = if (left) 1 else -1
+        }
+
+        // The lock goes above the button, or below it when the button sits near the top.
+        val gap = ((CIRCLE_RADIUS_DP * scale + 14) * density).roundToInt()
+        val above = centerY - gap - lockParams.height
+        val below = lockParams.height + gap + centerY <= bounds.height
+        val down = above < statusBarHeight() && below
+        lock.locked = false
+        lock.progress = 0f
+        lock.pointsDown = down
+        button.lockSign = if (down) 1f else -1f
+        lockParams.x = centerX - lockParams.width / 2
+        lockParams.y = if (down) centerY + gap else above.coerceAtLeast(0)
+        addWindow(lock, lockParams)
+        chromeShown = true
+    }
+
+    /** Overlays are kept out of the status bar, so the lock must fit below it. */
+    private fun statusBarHeight(): Int {
+        val id = service.resources.getIdentifier("status_bar_height", "dimen", "android")
+        return if (id > 0) service.resources.getDimensionPixelSize(id) else (24 * density).roundToInt()
+    }
+
+    private fun hideChrome() {
+        if (!chromeShown) return
+        chromeShown = false
+        bar.handsFree = false
+        removeWindow(bar)
+        removeWindow(lock)
+        moveButtonTo(homeX, homeY)
+    }
+
+    /**
+     * Follows a slide that started on the button: toward "cancel" the button goes along with
+     * the finger and the strip shortens in front of it; toward the lock it rises a little and
+     * the arrow climbs. (0, 0) puts everything back.
+     */
+    private fun followSwipe(
+        inward: Float,
+        up: Float,
+    ) {
+        if (!chromeShown) return
+        val shiftX = (inward * button.inwardSign).roundToInt()
+        val rise = (minOf(up, 24 * density) * -button.lockSign).roundToInt()
+        lock.progress = up / (80 * density * scale)
+        bar.cancelProgress = inward / (110 * density * scale)
+        button.barSide = if (rise != 0 || bar.parent == null) 0 else bar.side
+        moveButtonTo(homeX + shiftX, homeY - rise)
+        if (bar.parent != null) {
+            if (bar.side < 0) {
+                barParams.width = (homeX + shiftX - barMargin).coerceAtLeast(1)
+            } else {
+                barParams.x = homeX + buttonSize + shiftX
+                barParams.width = (getScreenBounds().width - barMargin - barParams.x).coerceAtLeast(1)
+            }
+            updateWindow(bar, barParams)
+        }
+    }
+
+    private fun moveButtonTo(
+        x: Int,
+        y: Int,
+    ) {
+        if (!attached || (params.x == x && params.y == y)) return
+        params.x = x
+        params.y = y
+        targetX = x
+        targetY = y
+        updateWindow(button, params)
+    }
+
+    private fun addWindow(
+        view: android.view.View,
+        layout: WindowManager.LayoutParams,
+    ) {
+        try {
+            windowManager.addView(view, layout)
+        } catch (_: Exception) {
+            // No overlay right now: recording works without the hints.
+        }
+    }
+
+    private fun updateWindow(
+        view: android.view.View,
+        layout: WindowManager.LayoutParams,
+    ) {
+        if (view.parent == null) return
+        try {
+            windowManager.updateViewLayout(view, layout)
+        } catch (_: Exception) {
+            // The view may be on its way out.
+        }
+    }
+
+    private fun removeWindow(view: android.view.View) {
+        if (view.parent == null) return
+        try {
+            windowManager.removeViewImmediate(view)
+        } catch (_: Exception) {
+            // Already gone.
+        }
+    }
+
     fun remove() {
         cancelPendingFrameUpdate()
+        hideChrome()
 
         if (!attached) {
             return
@@ -241,6 +448,11 @@ class OverlayManager(
                     edgeMargin,
                     maxY,
                 )
+    }
+
+    private fun syncTargets() {
+        targetX = params.x
+        targetY = params.y
     }
 
     private fun beginDrag() {
