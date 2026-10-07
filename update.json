@@ -1,11 +1,11 @@
 {
-  "version": "0.2.6",
-  "versionCode": 15,
-  "url": "https://github.com/moznoazachem/giga-pisar-android/releases/download/v0.2.6/GigaPisar.apk",
-  "sha256": "4f7c4d66cff4d6823e46868f5c0c7a026dfb9256a6964bbada4e6b3abea0dae4",
-  "size": 58114292,
+  "version": "0.2.8",
+  "versionCode": 17,
+  "url": "https://github.com/moznoazachem/giga-pisar-android/releases/download/v0.2.8/GigaPisar.apk",
+  "sha256": "0f4b943bb4b62cea58948016b0bd5e7f67976db91b567fef3512610f8bfcccb5",
+  "size": 58117108,
   "notes": {
-    "ru": "Размер плавающей кнопки теперь можно менять ползунком в настройках, пока тянете, кнопка сразу показывается на экране. И можно выбрать приложения, где кнопка не появляется.",
-    "en": "The floating button size can now be changed with a slider in the settings; while you drag it, the button shows on screen. And you can pick apps where the button does not appear."
+    "ru": "Запись без рук, как в Telegram: зажмите кнопку и потяните вверх к замку, потом нажмите «Вставить». Потянули в сторону, и запись отменилась. Кнопка стала голубой, на экране блокировки она больше не появляется, а текст точнее вставляется в пустые поля и в Telegram.",
+    "en": "Hands-free recording like in Telegram: hold the button and slide up to the lock, then tap Insert. Slide sideways to cancel. The button is now blue, no longer shows on the lock screen, and text goes into empty fields and Telegram more reliably."
   }
 }
