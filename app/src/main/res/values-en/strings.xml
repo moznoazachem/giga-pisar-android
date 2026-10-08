@@ -148,4 +148,8 @@
     <string name="fab_hidden_search">Find an app</string>
     <string name="fab_hidden_hint">The floating button does not appear in the apps you tick. The volume key works there as usual.</string>
     <string name="download_no_network">The phone cannot reach the server. Check the internet: Wi-Fi may be connected without access. If Private DNS is on, set it to Automatic or try mobile data.</string>
+    <string name="disclosure_title">How Pisar uses accessibility</string>
+    <string name="disclosure_text">Pisar uses the accessibility service to:\n\n• show the microphone button when a text field is open;\n• notice that you hold volume down in a text field;\n• put the dictated text where the cursor is.\n\nFor this, Pisar sees which text field is open and what is written in it. It does not store any of it and sends it nowhere. Speech is recognized on the phone. Only if you turn on the cloud Brain yourself does the dictated text go to the service you chose; the Brain never works in password fields.</string>
+    <string name="disclosure_agree">I agree</string>
+    <string name="disclosure_decline">Not now</string>
 </resources>

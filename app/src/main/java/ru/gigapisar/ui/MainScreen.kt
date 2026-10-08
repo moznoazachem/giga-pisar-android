@@ -66,8 +66,10 @@ fun MainScreen(activity: ComponentActivity) {
     val requestMicrophone = {
         permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
     }
+    // Google Play wants the service explained, and agreed to, before the user turns it on.
+    var accessibilityDisclosure by remember { mutableStateOf(false) }
     val openAccessibilitySettings = {
-        activity.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+        accessibilityDisclosure = true
     }
 
     LaunchedEffect(context) {
@@ -108,6 +110,15 @@ fun MainScreen(activity: ComponentActivity) {
     }
 
     GigaPisarTheme {
+        if (accessibilityDisclosure) {
+            AccessibilityDisclosure(
+                onAgree = {
+                    accessibilityDisclosure = false
+                    activity.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                },
+                onDecline = { accessibilityDisclosure = false },
+            )
+        }
         Surface(modifier = Modifier.fillMaxSize()) {
             if (page == Page.BRAIN) {
                 BrainScreen(brain = brain, onBack = { page = Page.MAIN })
