@@ -14,6 +14,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import org.json.JSONObject
+import ru.gigapisar.BuildConfig
 import ru.gigapisar.MainActivity
 import ru.gigapisar.R
 import ru.gigapisar.settings.AppLanguage
@@ -66,6 +67,7 @@ object Updates {
 
     /** The newer version found by the last check, if any (survives restarts). */
     fun pending(context: Context): UpdateInfo? {
+        if (!BuildConfig.SELF_UPDATE) return null
         val raw = prefs(context).getString("latest", null) ?: return null
         val info = runCatching { parse(JSONObject(raw)) }.getOrNull() ?: return null
         // APKs come only from this repository's releases.
@@ -73,7 +75,7 @@ object Updates {
     }
 
     /** Whether it is time for another look (the service and the app share the clock). */
-    fun due(context: Context): Boolean = System.currentTimeMillis() - prefs(context).getLong("checkedAt", 0) > CHECK_EVERY_MS
+    fun due(context: Context): Boolean = BuildConfig.SELF_UPDATE && System.currentTimeMillis() - prefs(context).getLong("checkedAt", 0) > CHECK_EVERY_MS
 
     /** Blocking: fetches update.json; returns a newer version or null. Never throws. */
     fun check(context: Context): UpdateInfo? =

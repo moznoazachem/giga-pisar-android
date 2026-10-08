@@ -89,6 +89,20 @@ android {
         }
     }
 
+    // Two shops: the APK from GitHub updates itself; the Play build leaves updates to Google Play,
+    // which does not allow apps to install their own updates.
+    flavorDimensions += "store"
+    productFlavors {
+        create("github") {
+            dimension = "store"
+            buildConfigField("boolean", "SELF_UPDATE", "true")
+        }
+        create("play") {
+            dimension = "store"
+            buildConfigField("boolean", "SELF_UPDATE", "false")
+        }
+    }
+
     buildTypes {
         release {
             if (releaseSigningConfigured) {
@@ -106,7 +120,7 @@ android {
     buildFeatures {
         compose = true
         aidl = false
-        buildConfig = false
+        buildConfig = true
         shaders = false
     }
 
@@ -121,20 +135,20 @@ kotlin {
     jvmToolchain(17)
 }
 
-tasks.matching { it.name == "assembleRelease" }.configureEach {
+tasks.matching { it.name == "assembleGithubRelease" }.configureEach {
     notCompatibleWithConfigurationCache(
         "Renames the generated APK after the release task completes",
     )
     doLast {
         val apkDirectory =
             layout.buildDirectory
-                .dir("outputs/apk/release")
+                .dir("outputs/apk/github/release")
                 .get()
                 .asFile
         val defaultApk =
-            apkDirectory.resolve("app-release.apk")
+            apkDirectory.resolve("app-github-release.apk")
         val unsignedApk =
-            apkDirectory.resolve("app-release-unsigned.apk")
+            apkDirectory.resolve("app-github-release-unsigned.apk")
         val namedApk =
             apkDirectory.resolve("gigapisar-v$appVersionName-release.apk")
         val sourceApk =
