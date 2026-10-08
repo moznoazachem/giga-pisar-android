@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="500" viewBox="0 0 1024 500">
+  <rect width="1024" height="500" fill="#102A24"/>
+  <g transform="translate(70,90) scale(4.2)">
+    <rect x="0" y="21" width="10" height="24" fill="#62C957"/>
+    <rect x="13" y="9" width="10" height="48" fill="#35B85F"/>
+    <rect x="26" y="0" width="10" height="66" fill="#16A77A"/>
+    <rect x="39" y="15" width="10" height="36" fill="#008F92"/>
+  </g>
+  <text x="330" y="230" font-family="Helvetica Neue, Arial, sans-serif" font-size="78" font-weight="700" fill="#FFFFFF">Гига Писарь</text>
+  <text x="332" y="300" font-family="Helvetica Neue, Arial, sans-serif" font-size="34" fill="#A8E0B4">Голосовой ввод на телефоне.</text>
+  <text x="332" y="346" font-family="Helvetica Neue, Arial, sans-serif" font-size="34" fill="#A8E0B4">Распознаёт прямо на устройстве.</text>
+</svg>
