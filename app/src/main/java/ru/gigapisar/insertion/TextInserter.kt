@@ -6,6 +6,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.os.Build
 import android.os.Bundle
+import android.os.SystemClock
 import android.os.Handler
 import android.os.Looper
 import android.os.PersistableBundle
@@ -71,7 +72,10 @@ class TextInserter(
         val node = findFocusedNode() ?: fallbackNode ?: return null
         return try {
             if (!node.isEditable || !node.isEnabled) return null
-            insertDirectly(node, text) ?: if (allowPaste) paste(node, text) else null
+            // With paste as the fallback, wait only briefly; without it, a late field gets more time
+            // before the user is offered to copy (Telegram on Honor shows the text after ~1 s).
+            insertDirectly(node, text, if (allowPaste) VERIFY_SHORT_MS else VERIFY_LONG_MS)
+                ?: if (allowPaste) paste(node, text) else null
         } catch (_: Throwable) {
             null
         }
@@ -105,6 +109,7 @@ class TextInserter(
     private fun insertDirectly(
         node: AccessibilityNodeInfo,
         text: String,
+        verifyWindowMs: Long,
     ): Insertion? {
         // Only plain input fields: there the text we read is the whole text, so writing it back
         // loses nothing. Anything else (web editors, custom views) goes through paste.
@@ -139,13 +144,18 @@ class TextInserter(
         // Some apps accept the action but ignore it: only count it when the field shows a change.
         // Browsers and Keep apply it a moment later or reshape the text (line breaks), so wait a
         // little, and once the field changed at all never paste on top: that doubled the text.
-        repeat(VERIFY_ATTEMPTS) {
-            node.refresh()
-            val now = fieldText(node)
-            if (now.startsWith(text, start) || now != shown) return Insertion(node, start)
-            Thread.sleep(VERIFY_STEP_MS)
+        var watched = node
+        val deadline = SystemClock.uptimeMillis() + verifyWindowMs
+        var step = VERIFY_FIRST_STEP_MS
+        while (true) {
+            // The app may swap the field's view after the hint goes away: follow the focused one.
+            if (!watched.refresh()) watched = findFocusedNode() ?: watched
+            val now = fieldText(watched)
+            if (now.startsWith(text, start) || now != shown) return Insertion(watched, start)
+            if (SystemClock.uptimeMillis() >= deadline) return null
+            Thread.sleep(step)
+            step = (step * 2).coerceAtMost(VERIFY_MAX_STEP_MS)
         }
-        return null
     }
 
     private fun paste(
@@ -202,8 +212,10 @@ class TextInserter(
 
     private companion object {
         const val CLIPBOARD_CLEAR_DELAY_MS = 250L
-        const val VERIFY_ATTEMPTS = 6
-        const val VERIFY_STEP_MS = 50L
+        const val VERIFY_SHORT_MS = 300L
+        const val VERIFY_LONG_MS = 1500L
+        const val VERIFY_FIRST_STEP_MS = 50L
+        const val VERIFY_MAX_STEP_MS = 250L
     }
 
     private fun findFocusedNode(): AccessibilityNodeInfo? {

@@ -22,6 +22,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -36,6 +38,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import ru.gigapisar.R
+import ru.gigapisar.model.ModelDownload
 import ru.gigapisar.model.ModelManager
 
 /**
@@ -137,51 +140,27 @@ private fun StepBody(
 @Composable
 private fun ModelStep(onModelInstalled: () -> Unit) {
     val context = LocalContext.current
-    val modelManager = remember(context) { ModelManager(context) }
-    val scope = rememberCoroutineScope()
-    var downloading by remember { mutableStateOf(false) }
-    var progress by remember { mutableIntStateOf(0) }
-    var error by remember { mutableStateOf<String?>(null) }
+    // The download lives in ModelDownload, so turning the phone does not cancel it.
+    val state by ModelDownload.state.collectAsState()
+    LaunchedEffect(state) {
+        if (state is ModelDownload.State.Done) onModelInstalled()
+    }
+    val running = state as? ModelDownload.State.Running
+    val error = (state as? ModelDownload.State.Failed)?.reason
 
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Text(text = context.getString(R.string.setup_model_title), style = MaterialTheme.typography.headlineSmall)
         Text(text = context.getString(R.string.setup_model_text), style = MaterialTheme.typography.bodyLarge)
-        if (downloading) {
+        if (running != null) {
             LinearProgressIndicator(
-                progress = { progress / 100f },
+                progress = { running.percent / 100f },
                 modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
             )
-            Text(text = context.getString(R.string.downloading_model, progress), style = MaterialTheme.typography.bodyMedium)
+            Text(text = context.getString(R.string.downloading_model, running.percent), style = MaterialTheme.typography.bodyMedium)
         } else {
             Spacer(Modifier.height(4.dp))
             Button(
-                onClick = {
-                    downloading = true
-                    progress = 0
-                    error = null
-                    scope.launch {
-                        try {
-                            modelManager.download { value -> progress = value }
-                            if (!modelManager.isInstalled()) {
-                                throw IllegalStateException(context.getString(R.string.model_verification_failed))
-                            }
-                            onModelInstalled()
-                        } catch (e: Throwable) {
-                            error =
-                                if (e is java.net.UnknownHostException ||
-                                    e is java.net.ConnectException ||
-                                    e is java.net.SocketTimeoutException
-                                ) {
-                                    // A DNS or connection failure reads like a server problem; it is the phone's network.
-                                    context.getString(R.string.download_no_network)
-                                } else {
-                                    e.message ?: e.javaClass.simpleName
-                                }
-                        } finally {
-                            downloading = false
-                        }
-                    }
-                },
+                onClick = { ModelDownload.start(context) },
                 modifier = Modifier.fillMaxWidth().height(52.dp),
             ) {
                 Text(context.getString(if (error == null) R.string.setup_model_button else R.string.setup_model_retry))
