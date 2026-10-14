@@ -1,11 +1,11 @@
 {
-  "version": "0.2.8",
-  "versionCode": 17,
-  "url": "https://github.com/moznoazachem/giga-pisar-android/releases/download/v0.2.8/GigaPisar.apk",
-  "sha256": "0f4b943bb4b62cea58948016b0bd5e7f67976db91b567fef3512610f8bfcccb5",
-  "size": 58117108,
+  "version": "0.2.9",
+  "versionCode": 18,
+  "url": "https://github.com/moznoazachem/giga-pisar-android/releases/download/v0.2.9/GigaPisar.apk",
+  "sha256": "1f705f4d4cf024017daf94d5e48c03386814d31f68f52851f9d00d35e30564e1",
+  "size": 58120420,
   "notes": {
-    "ru": "Запись без рук, как в Telegram: зажмите кнопку и потяните вверх к замку, потом нажмите «Вставить». Потянули в сторону, и запись отменилась. Кнопка стала голубой, на экране блокировки она больше не появляется, а текст точнее вставляется в пустые поля и в Telegram.",
-    "en": "Hands-free recording like in Telegram: hold the button and slide up to the lock, then tap Insert. Slide sideways to cancel. The button is now blue, no longer shows on the lock screen, and text goes into empty fields and Telegram more reliably."
+    "ru": "Загрузка модели больше не обрывается, если повернуть телефон. В Telegram на некоторых телефонах текст успевает вставиться, и Писарь не предлагает зря «Скопировать». Перед настройкой специальных возможностей Писарь теперь объясняет, зачем они нужны.",
+    "en": "The model download no longer stops when you rotate the phone. In Telegram on some phones the text now has time to land, so Pisar no longer offers Copy for nothing. Before the accessibility settings, Pisar now explains why it needs them."
   }
 }
