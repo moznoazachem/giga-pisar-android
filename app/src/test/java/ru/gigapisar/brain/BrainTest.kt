@@ -20,6 +20,18 @@ class BrainTest {
     }
 
     @Test
+    fun cancelPhraseDropsTheTake() {
+        assertEquals("Привет, как дела?", Brain.cancelledBody("Привет, как дела? Писарь, отмена."))
+        assertEquals("Привет.", Brain.cancelledBody("Привет. Гига Писарь, отмена"))
+        assertEquals("", Brain.cancelledBody("Писарь, отмена."))
+        assertEquals("Встреча отменена", Brain.cancelledBody("Встреча отменена, песарь, отбой"))
+        // A command that only starts with "отмени" is a command, not a cancel.
+        assertNull(Brain.cancelledBody("Писарь, отмени последнее предложение."))
+        assertNull(Brain.cancelledBody("Отмена встречи в пять."))
+        assertNull(Brain.cancelledBody("Купить хлеб. Писарь, исправь"))
+    }
+
+    @Test
     fun lastAddressWins() {
         assertEquals(
             "Я пользуюсь Писарем, и писарь хороший." to "сократи",

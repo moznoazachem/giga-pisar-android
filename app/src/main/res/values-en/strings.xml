@@ -29,6 +29,7 @@
     <string name="copied_to_clipboard">Text is in the clipboard</string>
     <string name="transcription_error">Recognition failed: %1$s</string>
     <string name="empty_transcription">Recognition returned no text</string>
+    <string name="take_canceled">Canceled, nothing inserted</string>
     <string name="paste_failed">Could not put the text into the field</string>
     <string name="audio_record_error">Could not access the microphone</string>
 

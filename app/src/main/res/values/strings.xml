@@ -29,6 +29,7 @@
     <string name="copied_to_clipboard">Текст в буфере обмена</string>
     <string name="transcription_error">Ошибка распознавания: %1$s</string>
     <string name="empty_transcription">Распознавание не вернуло текст</string>
+    <string name="take_canceled">Отменено, ничего не вставил</string>
     <string name="paste_failed">Не удалось вставить текст в поле</string>
     <string name="audio_record_error">Не удалось получить доступ к микрофону</string>
 

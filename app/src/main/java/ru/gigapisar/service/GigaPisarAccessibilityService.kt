@@ -547,6 +547,15 @@ class GigaPisarAccessibilityService : AccessibilityService() {
                         recognizer.transcribe(
                             audio,
                         )
+                    // "Писарь, отмена" at the end: nothing goes in (#19 on macOS, the same on the phone).
+                    if (Brain.cancelledBody(recognized) != null) {
+                        withContext(Dispatchers.Main) {
+                            pill.hide()
+                            overlay.setIdle()
+                            notifyUser(ui().getString(R.string.take_canceled))
+                        }
+                        return@launch
+                    }
                     // A password is never sent to a cloud service.
                     val brained = if (focusedNode?.isPassword == true) BrainOutcome(recognized) else applyBrain(recognized)
                     val text = brained.text

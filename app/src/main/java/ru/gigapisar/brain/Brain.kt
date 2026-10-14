@@ -50,6 +50,20 @@ object Brain {
     /** Recognition may hear "песарь" or "писарь" with various endings; "Гига" is optional. */
     private val address = Regex("""(?:гига[\s,—-]+)?п[еиэ]сар[ьяюе]?(?![\p{L}])[\s,.:!—-]*""", RegexOption.IGNORE_CASE)
 
+    private val cancel =
+        Regex("""(?:гига[\s,—-]+)?п[еиэ]сар[ьяюе]?(?![\p{L}])[\s,.:!—-]*(?:отмена|отмени|отменить|отбой)[\s.!]*$""", RegexOption.IGNORE_CASE)
+
+    /**
+     * "Писарь, отмена" at the very end: the take is dropped, nothing is inserted. Works without the Brain.
+     * Returns what was said before the phrase (possibly empty), or null when there is no such ending.
+     */
+    fun cancelledBody(text: String): String? {
+        val m = cancel.find(text) ?: return null
+        var body = text.substring(0, m.range.first).trimEnd()
+        while (body.isNotEmpty() && body.last() in ",—–-") body = body.dropLast(1).trimEnd()
+        return body
+    }
+
     /** Splits "text. Писарь, command" into body and command; null when there is no address. */
     fun parseCommand(text: String): Pair<String, String>? {
         // The last address wins: the text itself may mention Pisar.
