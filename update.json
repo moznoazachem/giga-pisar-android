@@ -1,11 +1,11 @@
 {
-  "version": "0.2.9",
-  "versionCode": 18,
-  "url": "https://github.com/moznoazachem/giga-pisar-android/releases/download/v0.2.9/GigaPisar.apk",
-  "sha256": "1f705f4d4cf024017daf94d5e48c03386814d31f68f52851f9d00d35e30564e1",
-  "size": 58120420,
+  "version": "0.2.10",
+  "versionCode": 19,
+  "url": "https://github.com/moznoazachem/giga-pisar-android/releases/download/v0.2.10/GigaPisar.apk",
+  "sha256": "9f7025b86ef8b709a543e43836d74d7bcb83268e4f36125bc01f7fc7d8a81f7b",
+  "size": 58120920,
   "notes": {
-    "ru": "Загрузка модели больше не обрывается, если повернуть телефон. В Telegram на некоторых телефонах текст успевает вставиться, и Писарь не предлагает зря «Скопировать». Перед настройкой специальных возможностей Писарь теперь объясняет, зачем они нужны.",
-    "en": "The model download no longer stops when you rotate the phone. In Telegram on some phones the text now has time to land, so Pisar no longer offers Copy for nothing. Before the accessibility settings, Pisar now explains why it needs them."
+    "ru": "Скажите в конце диктовки «Писарь, отмена», и ничего не вставится.",
+    "en": "Say “Писарь, отмена” at the end of a dictation and nothing is inserted."
   }
 }
