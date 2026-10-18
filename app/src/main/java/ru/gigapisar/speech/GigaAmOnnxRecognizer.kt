@@ -21,8 +21,9 @@ class GigaAmOnnxRecognizer(
     private val modelManager: ModelManager =
         ModelManager(context),
 ) {
+    // onnxruntime-android ships Microsoft telemetry (1DS); the app must send nothing anywhere.
     private val environment =
-        OrtEnvironment.getEnvironment()
+        OrtEnvironment.getEnvironment().apply { setTelemetry(false) }
 
     private var session: OrtSession? = null
     private var vocabulary: List<String>? = null

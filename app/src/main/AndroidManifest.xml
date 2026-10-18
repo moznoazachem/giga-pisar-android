@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.INTERNET" />
@@ -7,6 +8,10 @@
     <!-- Self-update: a notification about a new version and Android's installer for the downloaded APK. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- Only onnxruntime's telemetry wanted this; it is switched off below. -->
+    <uses-permission
+        android:name="android.permission.ACCESS_NETWORK_STATE"
+        tools:node="remove" />
 
     <!-- The "hide the button in these apps" list shows apps with a launcher icon. -->
     <queries>
@@ -26,6 +31,13 @@
         android:supportsRtl="true"
         android:windowSoftInputMode="adjustResize"
         android:theme="@style/Theme.GigaPisarAndroid">
+        <!-- onnxruntime-android starts Microsoft telemetry from this provider at app launch.
+             Removed so that the app sends nothing anywhere (issue #29). -->
+        <provider
+            android:name="ai.onnxruntime.TelemetryInitializer"
+            android:authorities="${applicationId}.onnxruntime_telemetry_initializer"
+            tools:node="remove" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true">
