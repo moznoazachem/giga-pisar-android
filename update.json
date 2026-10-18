@@ -1,11 +1,11 @@
 {
-  "version": "0.2.10",
-  "versionCode": 19,
-  "url": "https://github.com/moznoazachem/giga-pisar-android/releases/download/v0.2.10/GigaPisar.apk",
-  "sha256": "9f7025b86ef8b709a543e43836d74d7bcb83268e4f36125bc01f7fc7d8a81f7b",
-  "size": 58120920,
+  "version": "0.2.11",
+  "versionCode": 20,
+  "url": "https://github.com/moznoazachem/giga-pisar-android/releases/download/v0.2.11/GigaPisar.apk",
+  "sha256": "50b91beccb40af24647e4bc43f3f72ad630c1bab58690adf571131bb4086a9f5",
+  "size": 58120768,
   "notes": {
-    "ru": "Скажите в конце диктовки «Писарь, отмена», и ничего не вставится.",
-    "en": "Say “Писарь, отмена” at the end of a dictation and nothing is inserted."
+    "ru": "Писарь больше не отправляет никаких данных в Microsoft: служебная статистика движка распознавания выключена.",
+    "en": "Pisar no longer sends any data to Microsoft: the speech engine telemetry is switched off."
   }
 }
