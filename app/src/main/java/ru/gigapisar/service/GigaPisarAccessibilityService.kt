@@ -276,9 +276,7 @@ class GigaPisarAccessibilityService : AccessibilityService() {
                     true
                 } else if (event.repeatCount != 0) {
                     false
-                } else if (onLockScreen() ||
-                    insertionMode == InsertionMode.TEXT_FIELD && findFocusedEditable() == null
-                ) {
+                } else if (!volumeKeyAllowed()) {
                     // No text field open (or only the lock screen's PIN): an ordinary volume key.
                     false
                 } else {
@@ -368,6 +366,36 @@ class GigaPisarAccessibilityService : AccessibilityService() {
     }
 
     /** The PIN or password field of the lock screen is a text field too, but not one for dictation. */
+    /**
+     * Android Auto keeps the keyguard "locked" under the apps the driver opens on the phone,
+     * so a locked keyguard alone no longer blocks the key: only the lock screen's own fields
+     * (PIN, reply from a notification) do, and so does no field at all.
+     */
+    private fun volumeKeyAllowed(): Boolean {
+        val editable = findFocusedEditable()
+        val locked = onLockScreen()
+        val lockScreenField = editable?.packageName == "com.android.systemui"
+        val allowed = when {
+            locked && (editable == null || lockScreenField) -> false
+            insertionMode == InsertionMode.TEXT_FIELD && editable == null -> false
+            else -> true
+        }
+        // Test build for Android Auto: show why the key was or was not taken.
+        if (locked || carMode()) {
+            Toast.makeText(
+                this,
+                "Писарь: ${if (allowed) "беру кнопку" else "не беру кнопку"}; " +
+                    "блокировка=$locked, машина=${carMode()}, поле=${editable?.packageName ?: "нет"}",
+                Toast.LENGTH_LONG,
+            ).show()
+        }
+        return allowed
+    }
+
+    private fun carMode(): Boolean =
+        getSystemService(android.app.UiModeManager::class.java)?.currentModeType ==
+            android.content.res.Configuration.UI_MODE_TYPE_CAR
+
     private fun onLockScreen(): Boolean =
         getSystemService(android.app.KeyguardManager::class.java)?.isKeyguardLocked == true
 
