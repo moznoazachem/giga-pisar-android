@@ -2,14 +2,11 @@ package ru.gigapisar.overlay
 
 import android.accessibilityservice.AccessibilityService
 import android.content.Context
-import android.content.res.Configuration
 import android.graphics.Canvas
-import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.PixelFormat
 import android.graphics.Rect
 import android.graphics.RectF
-import android.graphics.Shader
 import android.graphics.Typeface
 import android.text.StaticLayout
 import android.text.TextPaint
@@ -172,46 +169,28 @@ class RecordingPill(
         private val barCount = 13
         private val barWidth = 3 * density
         private val barGap = 2 * density
-        private val barMax = 20 * density
-        private val padding = 14 * density
+        private val padding = 12 * density
         private val height = 30 * density
         private val barsWidth = barCount * barWidth + (barCount - 1) * barGap
 
-        // The website's wave palette, light green to teal.
-        private val palette =
-            listOf(
-                0xFFA8E063 to 0xFF1FA03A,
-                0xFFA8E063 to 0xFF1FA03A,
-                0xFF9ADF55 to 0xFF17963F,
-                0xFF8AD84C to 0xFF10884A,
-                0xFF7FD648 to 0xFF0E9367,
-                0xFF63CF62 to 0xFF009B82,
-                0xFF4FC884 to 0xFF00A08C,
-                0xFF3FC39B to 0xFF00A08C,
-                0xFF38BFA5 to 0xFF008F92,
-                0xFF35BCB0 to 0xFF008699,
-                0xFF35BCB0 to 0xFF008699,
-                0xFF35BCB0 to 0xFF008699,
-                0xFF35BCB0 to 0xFF008699,
-            )
+        // A pixel of margin above and below: on a burst a bar shoots up the whole pill.
+        private val barMax = height - 2 * density
 
-        private val dark =
-            (context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
-                Configuration.UI_MODE_NIGHT_YES
-        private val background = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = if (dark) 0xF22B2B2E.toInt() else 0xF5FFFFFF.toInt() }
+        // Like the Mac pill: always light, so it reads on any background, light or dark.
+        private val background = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xF5FFFFFF.toInt() }
         private val border =
             Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 style = Paint.Style.STROKE
                 strokeWidth = density
-                color = if (dark) 0x33FFFFFF else 0x1F000000
+                color = 0x1F000000
             }
         private val textPaint =
             TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
                 textSize = 13 * resources.displayMetrics.scaledDensity
                 typeface = Typeface.DEFAULT
-                color = if (dark) 0xE6FFFFFF.toInt() else 0xD9000000.toInt()
+                color = 0xD9000000.toInt()
             }
-        private val barPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+        private val barPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = BAR_COLOR }
 
         private var mode = Mode.IDLE
         private var level: () -> Float = { 0f }
@@ -223,11 +202,19 @@ class RecordingPill(
             Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 textSize = 14 * resources.displayMetrics.scaledDensity
                 typeface = Typeface.DEFAULT_BOLD
-                color = if (dark) 0xFF96D78F.toInt() else 0xFF2E6B30.toInt()
+                color = 0xFF2E6B30.toInt()
             }
         private val textPadV = 7 * density
         private val heights = FloatArray(barCount)
-        private var phase = 0f
+
+        // The Mac wave, frame for frame: one step is 1/60 s, whatever the screen's refresh rate.
+        private var smoothLevel = 0f
+        private val gain = FloatArray(barCount) { 1f }
+        private val lag = IntArray(barCount)
+        private var burst = -1 // steps since a burst began; -1: the bars just follow the level
+        private var sinceRoll = 0
+        private var lastFrameNanos = 0L
+        private var pendingSteps = 0f
 
         private val frame =
             object : Runnable {
@@ -264,13 +251,17 @@ class RecordingPill(
             this.level = level
             mode = Mode.LISTENING
             heights.fill(0f)
+            smoothLevel = 0f
+            burst = -1
+            sinceRoll = 0
             restart()
         }
 
         fun process() {
             mode = Mode.PROCESSING
-            phase = 0f
-            restart()
+            removeCallbacks(frame)
+            requestLayout()
+            invalidate()
         }
 
         fun message(
@@ -301,28 +292,68 @@ class RecordingPill(
 
         private fun restart() {
             removeCallbacks(frame)
+            lastFrameNanos = 0L
+            pendingSteps = 0f
             requestLayout()
             postOnAnimation(frame)
         }
 
         private fun tick() {
-            if (mode == Mode.LISTENING) {
-                // Level is already on the dB scale (0..1), see AudioRecorder.levelOf.
-                val raw = level()
-                val loud = raw.coerceIn(0f, 1f)
-                for (i in 0 until barCount) {
-                    val centre = 1f - kotlin.math.abs(i - (barCount - 1) / 2f) / barCount
-                    val jitter = 0.75f + 0.5f * Math.random().toFloat()
-                    val target = (0.15f + 0.85f * loud * centre * jitter).coerceIn(0.15f, 1f)
-                    heights[i] += (target - heights[i]) * 0.35f
-                }
-            } else {
-                phase += 0.18f
-                for (i in 0 until barCount) {
-                    heights[i] = 0.3f + 0.25f * (1f + sin(phase - i * 0.55f)) / 2f
-                }
+            val now = System.nanoTime()
+            if (lastFrameNanos != 0L) pendingSteps += (now - lastFrameNanos) / STEP_NANOS
+            lastFrameNanos = now
+            // After a stall, catch up by a few steps at most instead of replaying it all.
+            pendingSteps = pendingSteps.coerceAtMost(4f)
+            while (pendingSteps >= 1f) {
+                step(level().coerceIn(0f, 1f))
+                pendingSteps -= 1f
             }
         }
+
+        /** New spread of the bars: the louder the voice, the wider the heights and the tighter the timing. */
+        private fun roll() {
+            val low = 0.75f - 0.55f * smoothLevel
+            val spread = max(3, BURST_SPREAD - (6 * smoothLevel).toInt())
+            for (i in 0 until barCount) {
+                gain[i] = low + (1f - low) * Math.random().toFloat()
+                lag[i] = (Math.random() * (spread + 1)).toInt()
+            }
+            burst = 0
+            sinceRoll = 0
+        }
+
+        /**
+         * One 1/60 s step. Up almost at once (the voice must hit the bar in the same frame), down
+         * slower, or the bars would collapse between syllables and the wave would flicker.
+         */
+        private fun step(target: Float) {
+            // Level is already on the dB scale (0..1), see AudioRecorder.levelOf.
+            val rise = target - smoothLevel
+            smoothLevel += rise * (if (rise > 0) RISE_RATE else FALL_RATE)
+            sinceRoll++
+
+            // A burst: every bar takes a new share of the level and a new delay, once per burst,
+            // not every frame: per-frame randomness reads as trembling, a single one as a live voice.
+            if (rise > BURST_TRIGGER && burst < 0) {
+                roll()
+            } else if (smoothLevel > LIVELY_FROM && sinceRoll >= max(4, (18 - 15 * smoothLevel).toInt())) {
+                // While the voice is loud the bars reshuffle by themselves, so a shout looks as lively as it sounds.
+                roll()
+            }
+
+            for (i in 0 until barCount) {
+                // A bar whose turn has not come yet stays put: that is what makes a burst look uneven.
+                if (burst >= 0 && burst < lag[i]) continue
+                val goal = smoothLevel * shape(i) * gain[i]
+                val speed = if (goal > heights[i]) RISE_RATE else FALL_RATE + FALL_LOUD * smoothLevel
+                heights[i] += (goal - heights[i]) * speed
+            }
+
+            if (burst >= 0) burst = if (burst < BURST_SPREAD) burst + 1 else -1
+        }
+
+        /** A hill: the middle higher than the edges, so the pill reads as a wave, not a fence. */
+        private fun shape(i: Int): Float = 0.72f + 0.28f * sin(Math.PI.toFloat() * (i + 0.5f) / barCount)
 
         override fun onMeasure(
             widthMeasureSpec: Int,
@@ -352,15 +383,30 @@ class RecordingPill(
                 }
                 return
             }
+            // While recognizing, the bars stand still and turn blue: the work is not over yet.
+            barPaint.color = if (mode == Mode.PROCESSING) BUSY_COLOR else BAR_COLOR
             var x = r.left + padding
             for (i in 0 until barCount) {
-                val h = max(barWidth, barMax * heights[i])
+                // At rest a bar is a dot, not a lying oval: its height never goes below its width.
+                val sway = if (mode == Mode.PROCESSING) BUSY_BAR else heights[i]
+                val h = max(barWidth, barMax * sway)
                 val top = r.centerY() - h / 2
-                val (a, b) = palette[i % palette.size]
-                barPaint.shader = LinearGradient(0f, top, 0f, top + h, a.toInt(), b.toInt(), Shader.TileMode.CLAMP)
                 canvas.drawRoundRect(RectF(x, top, x + barWidth, top + h), barWidth / 2, barWidth / 2, barPaint)
                 x += barWidth + barGap
             }
+        }
+
+        private companion object {
+            const val STEP_NANOS = 1_000_000_000f / 60
+            const val RISE_RATE = 0.75f // up: ~30 ms to the target
+            const val FALL_RATE = 0.13f // down on quiet speech: ~120 ms
+            const val FALL_LOUD = 0.45f // added to the fall at full volume
+            const val BURST_TRIGGER = 0.1f
+            const val BURST_SPREAD = 9 // steps the bars may drift apart within a burst, 150 ms
+            const val LIVELY_FROM = 0.35f
+            const val BUSY_BAR = 0.35f
+            const val BAR_COLOR = 0xC7000000.toInt() // black at 78%, as on the Mac
+            const val BUSY_COLOR = 0xFF007AFF.toInt() // the Mac's system blue
         }
     }
 }
