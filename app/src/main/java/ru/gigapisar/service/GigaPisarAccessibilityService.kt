@@ -374,11 +374,14 @@ class GigaPisarAccessibilityService : AccessibilityService() {
         val editable = findFocusedEditable()
         val locked = onLockScreen()
         val lockScreenField = editable?.packageName == "com.android.systemui"
-        return when {
-            locked && (editable == null || lockScreenField) -> false
-            insertionMode == InsertionMode.TEXT_FIELD && editable == null -> false
-            else -> true
-        }
+        val allowed =
+            when {
+                locked && (editable == null || lockScreenField) -> false
+                insertionMode == InsertionMode.TEXT_FIELD && editable == null -> false
+                else -> true
+            }
+        showFieldDiagnostics()
+        return allowed
     }
 
     /** The PIN or password field of the lock screen is a text field too, but not one for dictation. */
@@ -434,12 +437,40 @@ class GigaPisarAccessibilityService : AccessibilityService() {
 
             if (focused != null && focused.isEditable && focused.isEnabled) {
                 focused
+            } else if (focused != null && focused.isEnabled && keyboardShown()) {
+                // Editors that draw their own text view (Samsung Notes, QuickEdit) do not call it
+                // editable, but the keyboard on screen says there is somewhere to type.
+                focused
             } else {
                 null
             }
         } catch (_: Throwable) {
             null
         }
+    }
+
+    private fun keyboardShown(): Boolean =
+        try {
+            windows.any { it.type == android.view.accessibility.AccessibilityWindowInfo.TYPE_INPUT_METHOD }
+        } catch (_: Throwable) {
+            false
+        }
+
+    /** Test build for Samsung Notes: what the focused view tells the system. */
+    private fun showFieldDiagnostics() {
+        val focused =
+            try {
+                findFocus(AccessibilityNodeInfo.FOCUS_INPUT) ?: rootInActiveWindow?.findFocus(AccessibilityNodeInfo.FOCUS_INPUT)
+            } catch (_: Throwable) {
+                null
+            }
+        val actions = focused?.actionList?.map { it.id } ?: emptyList()
+        val text =
+            "Писарь: поле=${focused?.className ?: "нет"}, приложение=${focused?.packageName ?: rootInActiveWindow?.packageName}, " +
+                "редактируемое=${focused?.isEditable}, вставка=${AccessibilityNodeInfo.ACTION_PASTE in actions}, " +
+                "запись=${AccessibilityNodeInfo.ACTION_SET_TEXT in actions}, клавиатура=${keyboardShown()}, " +
+                "блокировка=${onLockScreen()}"
+        Toast.makeText(this, text, Toast.LENGTH_LONG).show()
     }
 
     @Suppress("DEPRECATION")
