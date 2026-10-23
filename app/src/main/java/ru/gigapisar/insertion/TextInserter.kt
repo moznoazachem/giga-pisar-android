@@ -71,11 +71,14 @@ class TextInserter(
     ): Insertion? {
         val node = findFocusedNode() ?: fallbackNode ?: return null
         return try {
-            if (!node.isEditable || !node.isEnabled) return null
+            if (!node.isEnabled) return null
+            // Editors that draw their own text view (Samsung Notes) are not editable to us at all.
+            if (!node.isEditable) return commitThroughKeyboard(node, text)
             // With paste as the fallback, wait only briefly; without it, a late field gets more time
             // before the user is offered to copy (Telegram on Honor shows the text after ~1 s).
             insertDirectly(node, text, if (allowPaste) VERIFY_SHORT_MS else VERIFY_LONG_MS)
-                ?: if (allowPaste) paste(node, text) else null
+                ?: (if (allowPaste) paste(node, text) else null)
+                ?: commitThroughKeyboard(node, text)
         } catch (_: Throwable) {
             null
         }
@@ -170,6 +173,23 @@ class TextInserter(
         mainHandler.postDelayed(::clearClipboard, CLIPBOARD_CLEAR_DELAY_MS)
         if (!node.performAction(AccessibilityNodeInfo.ACTION_PASTE)) return null
         return Insertion(node, start)
+    }
+
+    /**
+     * Types [text] into the field over the same channel the keyboard uses (Android 13+): any field
+     * that takes keyboard input takes this, whatever the app draws it with. The keyboard stays
+     * the user's own; nothing is put on the clipboard.
+     */
+    private fun commitThroughKeyboard(
+        node: AccessibilityNodeInfo,
+        text: String,
+    ): Insertion? {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return null
+        val service = context as? android.accessibilityservice.AccessibilityService ?: return null
+        val connection = service.inputMethod?.currentInputConnection ?: return null
+        connection.commitText(text, 1, null)
+        // The offset is unknown here: swapping the text back later finds it by its own match, if at all.
+        return Insertion(node, -1)
     }
 
     /** The field's own text; empty while it only shows its hint ("Сообщение", "Поиск"). */

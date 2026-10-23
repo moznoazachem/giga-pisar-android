@@ -469,7 +469,8 @@ class GigaPisarAccessibilityService : AccessibilityService() {
             "Писарь: поле=${focused?.className ?: "нет"}, приложение=${focused?.packageName ?: rootInActiveWindow?.packageName}, " +
                 "редактируемое=${focused?.isEditable}, вставка=${AccessibilityNodeInfo.ACTION_PASTE in actions}, " +
                 "запись=${AccessibilityNodeInfo.ACTION_SET_TEXT in actions}, клавиатура=${keyboardShown()}, " +
-                "блокировка=${onLockScreen()}"
+                "блокировка=${onLockScreen()}, Android=${Build.VERSION.RELEASE}, канал клавиатуры=" +
+                "${Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && inputMethod?.currentInputConnection != null}"
         Toast.makeText(this, text, Toast.LENGTH_LONG).show()
     }
 
