@@ -1,11 +1,11 @@
 {
-  "version": "0.2.11",
-  "versionCode": 20,
-  "url": "https://github.com/moznoazachem/giga-pisar-android/releases/download/v0.2.11/GigaPisar.apk",
-  "sha256": "50b91beccb40af24647e4bc43f3f72ad630c1bab58690adf571131bb4086a9f5",
+  "version": "0.2.12",
+  "versionCode": 21,
+  "url": "https://github.com/moznoazachem/giga-pisar-android/releases/download/v0.2.12/GigaPisar.apk",
+  "sha256": "3a3269bf63651dd5bd8770b12c7b9d75edb38bbfd946a31375f785f9c1f97414",
   "size": 58120768,
   "notes": {
-    "ru": "Писарь больше не отправляет никаких данных в Microsoft: служебная статистика движка распознавания выключена.",
-    "en": "Pisar no longer sends any data to Microsoft: the speech engine telemetry is switched off."
+    "ru": "Плашка записи как на маке: белая, столбики пляшут вслед за голосом, синие, пока Писарь распознаёт. Кнопка громкости работает, когда телефон подключён к Android Auto.",
+    "en": "The recording pill now looks like the Mac one: light, with bars that dance to your voice and turn blue while Pisar recognizes. The volume key works while the phone is connected to Android Auto."
   }
 }
