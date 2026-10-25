@@ -395,12 +395,19 @@ private fun BrainLocalTab(
     val scope = rememberCoroutineScope()
     var url by remember { mutableStateOf(brain.ollamaUrl) }
     var models by remember { mutableStateOf<List<String>>(emptyList()) }
+    var manualModel by remember {
+        mutableStateOf(
+            brain.modelsByProvider[BrainProviders.Ollama.id]
+                ?: brain.model.takeIf { brain.providerId == BrainProviders.Ollama.id }
+                ?: "",
+        )
+    }
     var status by remember { mutableStateOf<Status>(Status.Idle) }
     val ollama = BrainProviders.Ollama
 
-    LaunchedEffect(ollamaActive) {
+    LaunchedEffect(ollamaActive, brain.ollamaUrl) {
         BrainClient.localBaseUrl = brain.ollamaUrl.takeIf { it.isNotBlank() }
-        if (!ollamaActive) return@LaunchedEffect
+        if (!ollamaActive || brain.ollamaUrl.isBlank()) return@LaunchedEffect
         models = emptyList()
         models =
             withContext(Dispatchers.IO) {
@@ -412,12 +419,42 @@ private fun BrainLocalTab(
             }
     }
 
-    fun connect(address: String) {
+    fun connect(
+        address: String,
+        model: String? = null,
+    ) {
         status = Status.Checking
         scope.launch {
             try {
                 val picked =
                     withContext(Dispatchers.IO) {
+                        // A model typed by hand skips the server list entirely: the person
+                        // knows better what is installed (e.g. a custom or pulled model).
+                        if (!model.isNullOrBlank()) {
+                            try {
+                                BrainClient.localBaseUrl = address
+                                BrainClient.probe(ollama, "", model)
+                            } catch (e: BrainException) {
+                                if (e.message?.contains("404") == true || e.message?.contains("не установлена") == true) {
+                                    // The model name is wrong: show what the server actually has.
+                                    val installed =
+                                        try {
+                                            BrainProviders.chatModels(BrainClient.listModels(ollama, ""))
+                                        } catch (_: Exception) {
+                                            emptyList()
+                                        }
+                                    val hint =
+                                        if (installed.isEmpty()) {
+                                            "выполните на нём: ollama pull $model (или ollama list, чтобы увидеть установленные)"
+                                        } else {
+                                            "на сервере установлены: ${installed.take(8).joinToString(", ")}"
+                                        }
+                                    throw BrainException("модель $model не отвечает на сервере — $hint")
+                                }
+                                throw e
+                            }
+                            return@withContext model
+                        }
                         // If the server gave no list, remember why: falling back to the
                         // default model name would only produce a misleading 404 later.
                         var listError: BrainException? = null
@@ -487,7 +524,7 @@ private fun BrainLocalTab(
             onChange = { on -> scope.launch { SettingsRepository.setBrainEveryTake(context, on) } },
         )
 
-        if (ollamaActive && models.size > 1) {
+        if (ollamaActive && models.isNotEmpty()) {
             SectionTitle(R.string.brain_models)
             for (m in models.take(30)) {
                 ListItem(
@@ -496,10 +533,17 @@ private fun BrainLocalTab(
                     trailingContent = { RadioButton(selected = m == brain.model, onClick = null) },
                     modifier =
                         Modifier.selectable(selected = m == brain.model, role = Role.RadioButton) {
-                            if (m != brain.model && status != Status.Checking) connect(url)
+                            if (m != brain.model && status != Status.Checking) connect(url, m)
                         },
                 )
             }
+        } else if (ollamaActive && status is Status.Ok) {
+            Text(
+                text = stringResource(R.string.brain_ollama_no_models),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 16.dp),
+            )
         }
 
         SectionTitle(R.string.brain_tab_local)
@@ -520,8 +564,24 @@ private fun BrainLocalTab(
                 supportingText = { Text(stringResource(R.string.brain_ollama_hint)) },
                 modifier = Modifier.fillMaxWidth(),
             )
+            OutlinedTextField(
+                value = manualModel,
+                onValueChange = {
+                    manualModel = it
+                    if (status is Status.Failed) status = Status.Idle
+                },
+                label = { Text(stringResource(R.string.brain_ollama_model_label)) },
+                placeholder = { Text(stringResource(R.string.brain_ollama_model_placeholder)) },
+                leadingIcon = { Icon(Icons.Outlined.Memory, contentDescription = null) },
+                singleLine = true,
+                supportingText = { Text(stringResource(R.string.brain_ollama_model_hint)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
             Button(
-                onClick = { connect(url.trim().trimEnd('/')) },
+                onClick = {
+                    val m = manualModel.trim()
+                    connect(url.trim().trimEnd('/'), m.takeIf { it.isNotBlank() })
+                },
                 enabled = schemeOk && url.isNotBlank() && status != Status.Checking,
                 modifier = Modifier.fillMaxWidth().height(48.dp),
             ) {

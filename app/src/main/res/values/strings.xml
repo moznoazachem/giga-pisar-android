@@ -115,6 +115,10 @@
     <string name="brain_ollama_hint">Ollama, запущенная на компьютере в вашей сети, например http://192.168.1.10:11434</string>
     <string name="brain_ollama_placeholder">Адрес сервера</string>
     <string name="brain_ollama_connect">Проверить и подключить</string>
+    <string name="brain_ollama_model_label">Модель (необязательно)</string>
+    <string name="brain_ollama_model_placeholder">llama3.2</string>
+    <string name="brain_ollama_model_hint">Оставьте пустым — модель выберется из списка сервера автоматически</string>
+    <string name="brain_ollama_no_models">Список моделей с сервера получить не удалось — введите название модели вручную</string>
     <string name="brain_ollama_disconnect">Отключить</string>
     <string name="brain_ollama_connected">Подключено к %1$s</string>
     <string name="brain_ollama_bad_url">Адрес должен начинаться с http:// или https://</string>

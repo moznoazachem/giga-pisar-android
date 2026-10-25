@@ -60,6 +60,23 @@ class BrainTest {
     }
 
     @Test
+    fun ollamaBaseUrlUsesOpenAiCompatibleApiPath() {
+        val previous = BrainClient.localBaseUrl
+        try {
+            BrainClient.localBaseUrl = "http://192.168.1.10:11434/"
+            assertEquals("http://192.168.1.10:11434/v1", BrainClient.baseUrl(BrainProviders.Ollama))
+
+            BrainClient.localBaseUrl = "http://192.168.1.10:11434/v1/"
+            assertEquals("http://192.168.1.10:11434/v1", BrainClient.baseUrl(BrainProviders.Ollama))
+
+            BrainClient.localBaseUrl = null
+            assertEquals(BrainProviders.Ollama.baseUrl, BrainClient.baseUrl(BrainProviders.Ollama))
+        } finally {
+            BrainClient.localBaseUrl = previous
+        }
+    }
+
+    @Test
     fun failureInPlainWords() {
         java.util.Locale.setDefault(java.util.Locale.forLanguageTag("ru"))
         assertEquals("сервис не принял ключ", BrainClient.describeFailure(401, """{"error":{"message":"Invalid key"}}"""))

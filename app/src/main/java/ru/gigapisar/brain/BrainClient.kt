@@ -35,8 +35,11 @@ object BrainClient {
     @Volatile
     var localBaseUrl: String? = null
 
-    fun baseUrl(provider: BrainProvider): String =
-        if (provider.local) (localBaseUrl ?: provider.baseUrl).trimEnd('/') else provider.baseUrl
+    fun baseUrl(provider: BrainProvider): String {
+        if (!provider.local) return provider.baseUrl
+        val address = (localBaseUrl ?: provider.baseUrl).trimEnd('/')
+        return if (address.endsWith("/v1", ignoreCase = true)) address else "$address/v1"
+    }
     /**
      * reasoning_effort is not part of every OpenAI-compatible API; some servers reject it
      * with 400. We send it until a server refuses once, then stop for the rest of the run.
