@@ -49,7 +49,7 @@ object KeyVault {
         }
     }
 
-    /** Services that have a key saved, in the order of [BrainProviders.all]. */
+    /** Services that have a key saved, in the order of [BrainProviders.all]. Local servers need no key. */
     fun savedProviders(context: Context): List<BrainProvider> {
         val ids =
             prefs(context)
@@ -57,7 +57,7 @@ object KeyVault {
                 .filter { it.startsWith(PREFIX) }
                 .map { it.removePrefix(PREFIX) }
                 .toSet()
-        return BrainProviders.all.filter { it.id in ids }
+        return BrainProviders.all.filter { it.id in ids || it.local }
     }
 
     fun clear(

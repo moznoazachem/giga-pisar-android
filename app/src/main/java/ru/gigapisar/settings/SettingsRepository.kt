@@ -51,6 +51,23 @@ object SettingsRepository {
     private val brainProviderKey = stringPreferencesKey("brain_provider")
     private val brainModelKey = stringPreferencesKey("brain_model")
 
+    /** The address of a local Ollama server in the home network, like "http://192.168.1.10:11434". */
+    private val ollamaUrlKey = stringPreferencesKey("ollama_url")
+
+    fun ollamaUrl(context: Context): Flow<String> =
+        context.settingsDataStore.data.map { preferences ->
+            preferences[ollamaUrlKey] ?: ""
+        }
+
+    private fun ollamaKey() = ollamaUrlKey
+
+    suspend fun setOllamaUrl(
+        context: Context,
+        url: String,
+    ) {
+        context.settingsDataStore.edit { it[ollamaUrlKey] = url.trim().trimEnd('/') }
+    }
+
     fun insertionMode(context: Context): Flow<InsertionMode> =
         context.settingsDataStore.data.map { preferences ->
             when (
@@ -175,6 +192,8 @@ object SettingsRepository {
         val everyTake: Boolean = false,
         val providerId: String? = null,
         val model: String? = null,
+        /** The address of the local Ollama server in the home network. */
+        val ollamaUrl: String = "",
         /** The last model chosen for each service, so switching services keeps each one's pick. */
         val modelsByProvider: Map<String, String> = emptyMap(),
     )
@@ -186,6 +205,7 @@ object SettingsRepository {
                 everyTake = preferences[brainEveryTakeKey] ?: false,
                 providerId = preferences[brainProviderKey],
                 model = preferences[brainModelKey],
+                ollamaUrl = preferences[ollamaKey()] ?: "",
                 modelsByProvider =
                     preferences
                         .asMap()

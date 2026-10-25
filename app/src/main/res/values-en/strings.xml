@@ -110,6 +110,15 @@
     <string name="brain_add_key">Add a key</string>
     <string name="brain_key_saved">Key saved</string>
     <string name="brain_where_keys">Where to get a key</string>
+    <string name="brain_tab_cloud">Cloud services</string>
+    <string name="brain_tab_local">Local server</string>
+    <string name="brain_ollama_hint">Ollama running on a computer in your network, e.g. http://192.168.1.10:11434</string>
+    <string name="brain_ollama_placeholder">Server address</string>
+    <string name="brain_ollama_connect">Check and connect</string>
+    <string name="brain_ollama_disconnect">Disconnect</string>
+    <string name="brain_ollama_connected">Connected to %1$s</string>
+    <string name="brain_ollama_bad_url">The address must start with http:// or https://</string>
+    <string name="brain_ollama_privacy">The text only goes into your home network — not a byte leaves for the internet.</string>
     <string name="brain_no_model">no suitable model found</string>
     <string name="brain_status_ok">Everything works</string>
     <string name="brain_status_ready">Ready</string>

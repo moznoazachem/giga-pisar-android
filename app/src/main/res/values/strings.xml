@@ -110,6 +110,15 @@
     <string name="brain_add_key">Добавить ключ</string>
     <string name="brain_key_saved">Ключ сохранён</string>
     <string name="brain_where_keys">Где взять ключ</string>
+    <string name="brain_tab_cloud">Облачные сервисы</string>
+    <string name="brain_tab_local">Локальный сервер</string>
+    <string name="brain_ollama_hint">Ollama, запущенная на компьютере в вашей сети, например http://192.168.1.10:11434</string>
+    <string name="brain_ollama_placeholder">Адрес сервера</string>
+    <string name="brain_ollama_connect">Проверить и подключить</string>
+    <string name="brain_ollama_disconnect">Отключить</string>
+    <string name="brain_ollama_connected">Подключено к %1$s</string>
+    <string name="brain_ollama_bad_url">Адрес должен начинаться с http:// или https://</string>
+    <string name="brain_ollama_privacy">Текст уходит только в вашу домашнюю сеть — ни один байт не выходит в интернет.</string>
     <string name="brain_no_model">не нашлась подходящая модель</string>
     <string name="brain_status_ok">Всё работает</string>
     <string name="brain_status_ready">Готов к работе</string>

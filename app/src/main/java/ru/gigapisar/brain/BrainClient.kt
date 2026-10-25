@@ -29,6 +29,15 @@ class BrainException(
  */
 object BrainClient {
     /**
+     * The address to send requests to: for local servers the one the person typed in the
+     * settings, for cloud services the one from the table.
+     */
+    @Volatile
+    var localBaseUrl: String? = null
+
+    fun baseUrl(provider: BrainProvider): String =
+        if (provider.local) (localBaseUrl ?: provider.baseUrl).trimEnd('/') else provider.baseUrl
+    /**
      * reasoning_effort is not part of every OpenAI-compatible API; some servers reject it
      * with 400. We send it until a server refuses once, then stop for the rest of the run.
      */
@@ -67,7 +76,7 @@ object BrainClient {
         provider: BrainProvider,
         key: String,
     ): List<String> {
-        val (status, body) = request("GET", "${provider.baseUrl}/models", key, null, 20_000)
+        val (status, body) = request("GET", "${baseUrl(provider)}/models", key, null, 20_000)
         if (status !in 200..299) throw BrainException(describeFailure(status, body))
         val data = JSONObject(body).getJSONArray("data")
         return (0 until data.length()).mapNotNull { data.getJSONObject(it).optString("id").takeIf { id -> id.isNotBlank() } }
@@ -92,7 +101,7 @@ object BrainClient {
                         .put(JSONObject().put("role", "user").put("content", text)),
                 )
         if (withReasoning) payload.put("reasoning_effort", "none")
-        return request("POST", "${provider.baseUrl}/chat/completions", key, payload.toString(), timeoutMs)
+        return request("POST", "${baseUrl(provider)}/chat/completions", key, payload.toString(), timeoutMs)
     }
 
     private fun request(
@@ -107,7 +116,8 @@ object BrainClient {
             connection.requestMethod = method
             connection.connectTimeout = minOf(timeoutMs, 10_000)
             connection.readTimeout = timeoutMs
-            connection.setRequestProperty("Authorization", "Bearer ${key.trim()}")
+            // A local server takes no key; sending an empty Authorization confuses nothing.
+            if (key.isNotBlank()) connection.setRequestProperty("Authorization", "Bearer ${key.trim()}")
             connection.setRequestProperty("Accept", "application/json")
             if (body != null) {
                 val bytes = body.toByteArray(Charsets.UTF_8)
@@ -126,7 +136,12 @@ object BrainClient {
                 say("сервис не ответил за ${timeoutMs / 1000} секунд", "the service did not answer within ${timeoutMs / 1000} seconds"),
             )
         } catch (_: IOException) {
-            throw BrainException(say("нет связи с сервисом, проверьте интернет", "cannot reach the service, check the connection"))
+            throw BrainException(
+                say(
+                    "нет связи с сервером, проверьте адрес и что телефон в той же сети",
+                    "cannot reach the server, check the address and that the phone is on the same network",
+                ),
+            )
         } finally {
             connection.disconnect()
         }
@@ -186,7 +201,14 @@ object BrainClient {
             status == 401 -> say("сервис не принял ключ", "the service rejected the key")
             status == 403 -> say("у ключа нет доступа к этой модели или сервису", "the key has no access to this model or service")
             status == 404 || ("model" in m && ("not found" in m || "not exist" in m)) ->
-                say("модель недоступна для этого ключа, выберите другую", "the model is not available for this key, pick another one")
+                if (localBaseUrl != null) {
+                    say(
+                        "модель не установлена на сервере, выполните на нём: ollama pull <модель>",
+                        "the model is not installed on the server, run there: ollama pull <model>",
+                    )
+                } else {
+                    say("модель недоступна для этого ключа, выберите другую", "the model is not available for this key, pick another one")
+                }
             status == 429 -> say("слишком много запросов, попробуйте через минуту", "too many requests, try again in a minute")
             status >= 500 -> say("у сервиса сбой (ошибка $status), попробуйте позже", "the service is failing (error $status), try later")
             else -> say("сервис ответил ошибкой $status", "the service answered with error $status")

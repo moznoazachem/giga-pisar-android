@@ -11,6 +11,8 @@ data class BrainProvider(
     val baseUrl: String,
     val preferredModels: List<String>,
     val keysUrl: String,
+    /** Local servers take no key; the address the person typed is the whole setup. */
+    val local: Boolean = false,
 )
 
 object BrainProviders {
@@ -63,7 +65,20 @@ object BrainProviders {
             "https://console.anthropic.com/settings/keys",
         )
 
-    val all = listOf(DeepSeek, OpenRouter, OpenAI, Groq, Gemini, Anthropic)
+    /** The local server is configured on the "Local server" tab; baseUrl is replaced at calls. */
+    val Ollama =
+        BrainProvider(
+            "ollama",
+            "Ollama",
+            "http://0.0.0.0:11434/v1",
+            listOf("llama3.2"),
+            "https://ollama.com",
+            local = true,
+        )
+
+    val all = listOf(DeepSeek, OpenRouter, OpenAI, Groq, Gemini, Anthropic, Ollama)
+    val cloud = listOf(DeepSeek, OpenRouter, OpenAI, Groq, Gemini, Anthropic)
+    val localServers = listOf(Ollama)
 
     fun byId(id: String?): BrainProvider? = all.firstOrNull { it.id == id }
 
