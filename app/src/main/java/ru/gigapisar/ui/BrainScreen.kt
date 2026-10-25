@@ -487,6 +487,7 @@ private fun BrainLocalTab(
                     }
                 SettingsRepository.setOllamaUrl(context, address)
                 SettingsRepository.setBrainService(context, ollama.id, picked)
+                if (!ollamaActive) SettingsRepository.setBrainEveryTake(context, false)
                 SettingsRepository.setBrainEnabled(context, true)
                 status = Status.Ok(context.getString(R.string.brain_ollama_connected, address))
             } catch (e: BrainException) {
