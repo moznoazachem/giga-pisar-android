@@ -72,6 +72,7 @@ import ru.gigapisar.brain.BrainClient
 import ru.gigapisar.brain.BrainException
 import ru.gigapisar.brain.BrainProvider
 import ru.gigapisar.brain.BrainProviders
+import ru.gigapisar.brain.say
 import ru.gigapisar.brain.KeyVault
 import ru.gigapisar.settings.SettingsRepository
 
@@ -156,6 +157,9 @@ internal fun BrainScreen(
 }
 
 private enum class BrainTab { CLOUD, LOCAL }
+
+/** The server answered that it has no such model (see BrainClient.describeFailure). */
+private fun notInstalled(e: BrainException): Boolean = e.message?.contains("ollama pull") == true
 
 @Composable
 private fun BrainCloudTab(
@@ -406,13 +410,12 @@ private fun BrainLocalTab(
     val ollama = BrainProviders.Ollama
 
     LaunchedEffect(ollamaActive, brain.ollamaUrl) {
-        BrainClient.localBaseUrl = brain.ollamaUrl.takeIf { it.isNotBlank() }
         if (!ollamaActive || brain.ollamaUrl.isBlank()) return@LaunchedEffect
         models = emptyList()
         models =
             withContext(Dispatchers.IO) {
                 try {
-                    BrainProviders.chatModels(BrainClient.listModels(ollama, ""))
+                    BrainProviders.chatModels(BrainClient.listModels(BrainProviders.ollamaAt(brain.ollamaUrl), ""))
                 } catch (_: Exception) {
                     emptyList()
                 }
@@ -424,6 +427,7 @@ private fun BrainLocalTab(
         model: String? = null,
     ) {
         status = Status.Checking
+        val server = BrainProviders.ollamaAt(address)
         scope.launch {
             try {
                 val picked =
@@ -432,24 +436,26 @@ private fun BrainLocalTab(
                         // knows better what is installed (e.g. a custom or pulled model).
                         if (!model.isNullOrBlank()) {
                             try {
-                                BrainClient.localBaseUrl = address
-                                BrainClient.probe(ollama, "", model)
+                                BrainClient.probe(server, "", model)
                             } catch (e: BrainException) {
-                                if (e.message?.contains("404") == true || e.message?.contains("не установлена") == true) {
+                                if (notInstalled(e)) {
                                     // The model name is wrong: show what the server actually has.
                                     val installed =
                                         try {
-                                            BrainProviders.chatModels(BrainClient.listModels(ollama, ""))
+                                            BrainProviders.chatModels(BrainClient.listModels(server, ""))
                                         } catch (_: Exception) {
                                             emptyList()
                                         }
                                     val hint =
                                         if (installed.isEmpty()) {
-                                            "выполните на нём: ollama pull $model (или ollama list, чтобы увидеть установленные)"
+                                            say(
+                                                "выполните на нём: ollama pull $model (или ollama list, чтобы увидеть установленные)",
+                                                "run there: ollama pull $model (or ollama list to see what is installed)",
+                                            )
                                         } else {
-                                            "на сервере установлены: ${installed.take(8).joinToString(", ")}"
+                                            say("на сервере установлены: ", "installed on the server: ") + installed.take(8).joinToString(", ")
                                         }
-                                    throw BrainException("модель $model не отвечает на сервере — $hint")
+                                    throw BrainException(say("модель $model не отвечает на сервере: $hint", "model $model does not answer on the server: $hint"))
                                 }
                                 throw e
                             }
@@ -460,8 +466,7 @@ private fun BrainLocalTab(
                         var listError: BrainException? = null
                         val list =
                             try {
-                                BrainClient.localBaseUrl = address
-                                BrainProviders.chatModels(BrainClient.listModels(ollama, ""))
+                                BrainProviders.chatModels(BrainClient.listModels(server, ""))
                             } catch (e: BrainException) {
                                 listError = e
                                 emptyList()
@@ -470,15 +475,20 @@ private fun BrainLocalTab(
                             if (list.isEmpty()) {
                                 throw listError ?: BrainException(context.getString(R.string.brain_no_model))
                             } else {
-                                BrainProviders.pickDefault(ollama, list)
+                                BrainProviders.pickDefault(server, list)
                                     ?: throw BrainException(context.getString(R.string.brain_no_model))
                             }
                         try {
-                            BrainClient.probe(ollama, "", want)
+                            BrainClient.probe(server, "", want)
                         } catch (e: BrainException) {
-                            throw if (list.size > 1 && e.message?.contains("404") == true) {
+                            throw if (list.size > 1 && notInstalled(e)) {
                                 // The picked model is not actually usable; say it plainly.
-                                BrainException("модель $want не отвечает на сервере — установите её (ollama pull $want) или выберите другую")
+                                BrainException(
+                                    say(
+                                        "модель $want не отвечает на сервере: установите её (ollama pull $want) или выберите другую",
+                                        "model $want does not answer on the server: install it (ollama pull $want) or pick another one",
+                                    ),
+                                )
                             } else {
                                 e
                             }
@@ -586,7 +596,7 @@ private fun BrainLocalTab(
                 enabled = schemeOk && url.isNotBlank() && status != Status.Checking,
                 modifier = Modifier.fillMaxWidth().height(48.dp),
             ) {
-                Text(stringResource(if (ollamaActive) R.string.brain_ollama_connect else R.string.brain_ollama_connect))
+                Text(stringResource(R.string.brain_ollama_connect))
             }
             if (ollamaActive) {
                 Button(

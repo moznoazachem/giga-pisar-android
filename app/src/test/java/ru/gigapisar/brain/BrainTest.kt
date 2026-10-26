@@ -61,19 +61,17 @@ class BrainTest {
 
     @Test
     fun ollamaBaseUrlUsesOpenAiCompatibleApiPath() {
-        val previous = BrainClient.localBaseUrl
-        try {
-            BrainClient.localBaseUrl = "http://192.168.1.10:11434/"
-            assertEquals("http://192.168.1.10:11434/v1", BrainClient.baseUrl(BrainProviders.Ollama))
+        assertEquals("http://192.168.1.10:11434/v1", BrainProviders.ollamaAt("http://192.168.1.10:11434/").baseUrl)
+        assertEquals("http://192.168.1.10:11434/v1", BrainProviders.ollamaAt("http://192.168.1.10:11434/v1/").baseUrl)
+    }
 
-            BrainClient.localBaseUrl = "http://192.168.1.10:11434/v1/"
-            assertEquals("http://192.168.1.10:11434/v1", BrainClient.baseUrl(BrainProviders.Ollama))
-
-            BrainClient.localBaseUrl = null
-            assertEquals(BrainProviders.Ollama.baseUrl, BrainClient.baseUrl(BrainProviders.Ollama))
-        } finally {
-            BrainClient.localBaseUrl = previous
-        }
+    @Test
+    fun plainHttpOnlyAtHome() {
+        assertEquals(true, BrainClient.onHomeNetwork("192.168.1.10"))
+        assertEquals(true, BrainClient.onHomeNetwork("10.0.0.5"))
+        assertEquals(true, BrainClient.onHomeNetwork("100.101.102.103"))
+        assertEquals(true, BrainClient.onHomeNetwork("127.0.0.1"))
+        assertEquals(false, BrainClient.onHomeNetwork("8.8.8.8"))
     }
 
     @Test

@@ -4,6 +4,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
 import java.net.HttpURLConnection
+import java.net.InetAddress
 import java.net.SocketTimeoutException
 import java.net.URL
 import java.util.Locale
@@ -29,18 +30,6 @@ class BrainException(
  */
 object BrainClient {
     /**
-     * The address to send requests to: for local servers the one the person typed in the
-     * settings, for cloud services the one from the table.
-     */
-    @Volatile
-    var localBaseUrl: String? = null
-
-    fun baseUrl(provider: BrainProvider): String {
-        if (!provider.local) return provider.baseUrl
-        val address = (localBaseUrl ?: provider.baseUrl).trimEnd('/')
-        return if (address.endsWith("/v1", ignoreCase = true)) address else "$address/v1"
-    }
-    /**
      * reasoning_effort is not part of every OpenAI-compatible API; some servers reject it
      * with 400. We send it until a server refuses once, then stop for the rest of the run.
      */
@@ -61,9 +50,9 @@ object BrainClient {
             // Only drop the parameter when the server complains about it; a wrong model name is a real error.
             sendReasoningEffort = false
             val (retryStatus, retryBody) = post(provider, key, model, prompt, text, false, timeoutMs)
-            return readContent(retryStatus, retryBody)
+            return readContent(retryStatus, retryBody, provider.local)
         }
-        return readContent(status, body)
+        return readContent(status, body, provider.local)
     }
 
     /** A tiny real request: a key that lists models may still be unable to chat (no balance, no access). */
@@ -79,8 +68,8 @@ object BrainClient {
         provider: BrainProvider,
         key: String,
     ): List<String> {
-        val (status, body) = request("GET", "${baseUrl(provider)}/models", key, null, 20_000)
-        if (status !in 200..299) throw BrainException(describeFailure(status, body))
+        val (status, body) = request("GET", "${provider.baseUrl}/models", key, null, 20_000)
+        if (status !in 200..299) throw BrainException(describeFailure(status, body, provider.local))
         val data = JSONObject(body).getJSONArray("data")
         return (0 until data.length()).mapNotNull { data.getJSONObject(it).optString("id").takeIf { id -> id.isNotBlank() } }
     }
@@ -104,7 +93,7 @@ object BrainClient {
                         .put(JSONObject().put("role", "user").put("content", text)),
                 )
         if (withReasoning) payload.put("reasoning_effort", "none")
-        return request("POST", "${baseUrl(provider)}/chat/completions", key, payload.toString(), timeoutMs)
+        return request("POST", "${provider.baseUrl}/chat/completions", key, payload.toString(), timeoutMs)
     }
 
     private fun request(
@@ -114,7 +103,17 @@ object BrainClient {
         body: String?,
         timeoutMs: Int,
     ): Pair<Int, String> {
-        val connection = URL(url).openConnection() as HttpURLConnection
+        val address = URL(url)
+        // Plain http is allowed for the person's own server at home, never for anything on the internet.
+        if (address.protocol == "http" && !onHomeNetwork(address.host)) {
+            throw BrainException(
+                say(
+                    "без шифрования (http) можно подключаться только к компьютеру в домашней сети",
+                    "plain http is only allowed to a computer on your home network",
+                ),
+            )
+        }
+        val connection = address.openConnection() as HttpURLConnection
         try {
             connection.requestMethod = method
             connection.connectTimeout = minOf(timeoutMs, 10_000)
@@ -150,11 +149,25 @@ object BrainClient {
         }
     }
 
+    /** A loopback, private (10/8, 172.16/12, 192.168/16), link-local or Tailscale (100.64/10) address. */
+    internal fun onHomeNetwork(host: String): Boolean =
+        try {
+            InetAddress.getAllByName(host).all { a ->
+                val b = a.address
+                a.isLoopbackAddress || a.isSiteLocalAddress || a.isLinkLocalAddress ||
+                    (b.size == 4 && b[0].toInt() and 0xFF == 100 && b[1].toInt() and 0xC0 == 64) ||
+                    (b.size == 16 && b[0].toInt() and 0xFE == 0xFC)
+            }
+        } catch (_: Exception) {
+            false
+        }
+
     private fun readContent(
         status: Int,
         body: String,
+        local: Boolean,
     ): String {
-        if (status !in 200..299) throw BrainException(describeFailure(status, body))
+        if (status !in 200..299) throw BrainException(describeFailure(status, body, local))
         var answer =
             try {
                 JSONObject(body)
@@ -190,6 +203,7 @@ object BrainClient {
     fun describeFailure(
         status: Int,
         body: String,
+        local: Boolean = false,
     ): String {
         val m = (serverMessage(body) + " " + body).lowercase()
         return when {
@@ -204,7 +218,7 @@ object BrainClient {
             status == 401 -> say("сервис не принял ключ", "the service rejected the key")
             status == 403 -> say("у ключа нет доступа к этой модели или сервису", "the key has no access to this model or service")
             status == 404 || ("model" in m && ("not found" in m || "not exist" in m)) ->
-                if (localBaseUrl != null) {
+                if (local) {
                     say(
                         "модель не установлена на сервере, выполните на нём: ollama pull <модель>",
                         "the model is not installed on the server, run there: ollama pull <model>",

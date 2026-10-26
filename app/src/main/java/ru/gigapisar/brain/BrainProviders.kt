@@ -76,6 +76,12 @@ object BrainProviders {
             local = true,
         )
 
+    /** Ollama at the address the person typed, on its OpenAI-compatible path. */
+    fun ollamaAt(address: String): BrainProvider {
+        val base = address.trim().trimEnd('/')
+        return Ollama.copy(baseUrl = if (base.endsWith("/v1", ignoreCase = true)) base else "$base/v1")
+    }
+
     val all = listOf(DeepSeek, OpenRouter, OpenAI, Groq, Gemini, Anthropic, Ollama)
     val cloud = listOf(DeepSeek, OpenRouter, OpenAI, Groq, Gemini, Anthropic)
     val localServers = listOf(Ollama)

@@ -33,7 +33,6 @@ import ru.gigapisar.MainActivity
 import ru.gigapisar.R
 import ru.gigapisar.audio.AudioRecorder
 import ru.gigapisar.brain.Brain
-import ru.gigapisar.brain.BrainClient
 import ru.gigapisar.brain.BrainException
 import ru.gigapisar.brain.BrainProviders
 import ru.gigapisar.brain.KeyVault
@@ -666,11 +665,16 @@ class GigaPisarAccessibilityService : AccessibilityService() {
     private fun applyBrain(text: String): BrainOutcome {
         val settings = brainSettings
         if (!settings.enabled || text.isBlank()) return BrainOutcome(text)
-        val provider = BrainProviders.byId(settings.providerId) ?: return BrainOutcome(text)
+        val listed = BrainProviders.byId(settings.providerId) ?: return BrainOutcome(text)
+        // A local server lives at the address the person typed; clouds have theirs in the table.
+        val provider =
+            if (listed.local) {
+                settings.ollamaUrl.takeIf { it.isNotBlank() }?.let(BrainProviders::ollamaAt) ?: return BrainOutcome(text)
+            } else {
+                listed
+            }
         val model = settings.model ?: return BrainOutcome(text)
         val key = KeyVault.load(this, provider.id) ?: if (provider.local) "" else return BrainOutcome(text)
-        // The local server address the person typed; clouds have it in the table.
-        BrainClient.localBaseUrl = if (provider.local) settings.ollamaUrl.takeIf { it.isNotBlank() } ?: return BrainOutcome(text) else null
         val parsed = Brain.parseCommand(text)
         if (parsed == null && !settings.everyTake) return BrainOutcome(text)
         // A failed command still puts in what was said before "Писарь".
