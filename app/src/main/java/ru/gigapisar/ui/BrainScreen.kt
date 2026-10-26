@@ -167,7 +167,7 @@ private fun BrainCloudTab(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    var saved by remember { mutableStateOf(KeyVault.savedProviders(context).filterNot { it.local }) }
+    var saved by remember { mutableStateOf(KeyVault.savedProviders(context)) }
     val active = BrainProviders.byId(brain.providerId)?.takeIf { it in saved }
     var models by remember { mutableStateOf<List<String>>(emptyList()) }
     var status by remember { mutableStateOf<Status>(Status.Idle) }

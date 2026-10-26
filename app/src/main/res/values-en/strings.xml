@@ -118,11 +118,11 @@
     <string name="brain_ollama_model_label">Model (optional)</string>
     <string name="brain_ollama_model_placeholder">llama3.2</string>
     <string name="brain_ollama_model_hint">Leave empty and a model is picked from the server list automatically</string>
-    <string name="brain_ollama_no_models">Could not fetch the model list from the server — type the model name manually</string>
+    <string name="brain_ollama_no_models">Could not fetch the model list from the server, type the model name manually</string>
     <string name="brain_ollama_disconnect">Disconnect</string>
     <string name="brain_ollama_connected">Connected to %1$s</string>
     <string name="brain_ollama_bad_url">The address must start with http:// or https://</string>
-    <string name="brain_ollama_privacy">The text only goes into your home network — not a byte leaves for the internet.</string>
+    <string name="brain_ollama_privacy">The text goes to your computer, not to the internet. Over http it travels the network unencrypted, so connect only on your own home network, not in a cafe or on someone else\'s Wi-Fi.</string>
     <string name="brain_no_model">no suitable model found</string>
     <string name="brain_status_ok">Everything works</string>
     <string name="brain_status_ready">Ready</string>

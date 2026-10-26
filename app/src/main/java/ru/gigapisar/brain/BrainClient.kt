@@ -116,6 +116,8 @@ object BrainClient {
         val connection = address.openConnection() as HttpURLConnection
         try {
             connection.requestMethod = method
+            // A redirect could lead off the home network, past the check above: none is followed.
+            connection.instanceFollowRedirects = false
             connection.connectTimeout = minOf(timeoutMs, 10_000)
             connection.readTimeout = timeoutMs
             // A local server takes no key; sending an empty Authorization confuses nothing.

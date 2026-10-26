@@ -117,12 +117,12 @@
     <string name="brain_ollama_connect">Проверить и подключить</string>
     <string name="brain_ollama_model_label">Модель (необязательно)</string>
     <string name="brain_ollama_model_placeholder">llama3.2</string>
-    <string name="brain_ollama_model_hint">Оставьте пустым — модель выберется из списка сервера автоматически</string>
-    <string name="brain_ollama_no_models">Список моделей с сервера получить не удалось — введите название модели вручную</string>
+    <string name="brain_ollama_model_hint">Оставьте пустым, и модель выберется из списка сервера сама</string>
+    <string name="brain_ollama_no_models">Список моделей с сервера получить не удалось, введите название модели вручную</string>
     <string name="brain_ollama_disconnect">Отключить</string>
     <string name="brain_ollama_connected">Подключено к %1$s</string>
     <string name="brain_ollama_bad_url">Адрес должен начинаться с http:// или https://</string>
-    <string name="brain_ollama_privacy">Текст уходит только в вашу домашнюю сеть — ни один байт не выходит в интернет.</string>
+    <string name="brain_ollama_privacy">Текст уходит на ваш компьютер, а не в интернет. По http он идёт по сети без шифрования, поэтому подключайтесь только в своей домашней сети, не в кафе или чужом Wi-Fi.</string>
     <string name="brain_no_model">не нашлась подходящая модель</string>
     <string name="brain_status_ok">Всё работает</string>
     <string name="brain_status_ready">Готов к работе</string>
