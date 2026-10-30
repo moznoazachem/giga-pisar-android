@@ -52,6 +52,7 @@ class RecordingPill(
     ) {
         view.removeCallbacks(hideRunnable)
         dropAction()
+        keepScreenOn = true
         view.listen(level)
         place(anchor)
     }
@@ -60,6 +61,7 @@ class RecordingPill(
     fun showProcessing() {
         view.removeCallbacks(hideRunnable)
         dropAction()
+        keepScreenOn = true
         view.process()
         place(lastAnchor)
     }
@@ -72,6 +74,7 @@ class RecordingPill(
     ) {
         view.removeCallbacks(hideRunnable)
         dropAction()
+        keepScreenOn = false
         view.message(text)
         place(anchor)
         view.postDelayed(hideRunnable, millis)
@@ -89,6 +92,7 @@ class RecordingPill(
         onAction: () -> Unit,
     ) {
         view.removeCallbacks(hideRunnable)
+        keepScreenOn = false
         view.message(text, action)
         view.setOnClickListener {
             hide()
@@ -125,6 +129,13 @@ class RecordingPill(
     private var lastAnchor: Rect? = null
     private var touchable = false
 
+    /**
+     * While the pill listens or recognizes, the screen must not go dark: a long dictation
+     * used to be cut off by the screen timeout, and the lock screen then hid the pill, so
+     * Pisar looked frozen. Messages and actions do not hold the screen.
+     */
+    private var keepScreenOn = false
+
     private fun place(anchor: Rect?) {
         lastAnchor = anchor
         val metrics = service.resources.displayMetrics
@@ -147,6 +158,12 @@ class RecordingPill(
                 params.flags and WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE.inv()
             } else {
                 params.flags or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
+            }
+        params.flags =
+            if (keepScreenOn) {
+                params.flags or WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
+            } else {
+                params.flags and WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON.inv()
             }
         try {
             if (attached) {
