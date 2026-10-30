@@ -235,6 +235,7 @@ class OverlayManager(
 
     fun setIdle() {
         hideChrome()
+        keepScreenOn(false)
         button.setState(
             RecordingButton.State.IDLE,
         )
@@ -242,6 +243,7 @@ class OverlayManager(
 
     /** Hints (strip and lock) only when the button itself started the recording. */
     fun setRecording(withHints: Boolean = true) {
+        keepScreenOn(true)
         button.setState(
             RecordingButton.State.RECORDING,
         )
@@ -260,9 +262,22 @@ class OverlayManager(
 
     fun setProcessing() {
         hideChrome()
+        keepScreenOn(true)
         button.setState(
             RecordingButton.State.PROCESSING,
         )
+    }
+
+    /**
+     * The button's window holds the screen awake while recording or recognizing, so a long
+     * dictation is not cut off by the screen timeout. The pill does the same for the volume key.
+     */
+    private fun keepScreenOn(on: Boolean) {
+        val flag = WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
+        val flags = if (on) params.flags or flag else params.flags and flag.inv()
+        if (flags == params.flags) return
+        params.flags = flags
+        if (attached) updateWindow(button, params)
     }
 
     /** Strip and lock next to the button; skipped while the button is hidden. */
