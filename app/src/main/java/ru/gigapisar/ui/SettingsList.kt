@@ -24,6 +24,7 @@ import androidx.compose.material.icons.outlined.RadioButtonChecked
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Translate
 import androidx.compose.material.icons.outlined.SwipeUp
+import androidx.compose.material.icons.outlined.TextFormat
 import androidx.compose.material.icons.outlined.Vibration
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
@@ -62,6 +63,7 @@ internal fun SettingsList(
     volumeKeyEnabled: Boolean,
     vibrationEnabled: Boolean,
     noClipboard: Boolean = false,
+    simpleSyntax: Boolean = false,
     fabScale: Float = 1f,
     fabGestures: Boolean = true,
     hiddenAppNames: List<String> = emptyList(),
@@ -72,6 +74,7 @@ internal fun SettingsList(
     onVolumeKey: (Boolean) -> Unit,
     onVibration: (Boolean) -> Unit,
     onNoClipboard: (Boolean) -> Unit = {},
+    onSimpleSyntax: (Boolean) -> Unit = {},
     onFabScale: (Float) -> Unit = {},
     onFabGestures: (Boolean) -> Unit = {},
     onOpenHiddenApps: () -> Unit = {},
@@ -119,6 +122,13 @@ internal fun SettingsList(
             subtitle = R.string.vibration_hint,
             checked = vibrationEnabled,
             onChange = onVibration,
+        )
+        SwitchRow(
+            icon = Icons.Outlined.TextFormat,
+            title = R.string.simple_syntax,
+            subtitle = R.string.simple_syntax_hint,
+            checked = simpleSyntax,
+            onChange = onSimpleSyntax,
         )
 
         SectionTitle(R.string.section_insertion)

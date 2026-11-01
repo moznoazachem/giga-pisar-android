@@ -41,6 +41,9 @@ object SettingsRepository {
     private val vibrationEnabledKey =
         booleanPreferencesKey("vibration_enabled")
 
+    private val simpleSyntaxKey =
+        booleanPreferencesKey("simple_syntax")
+
     private val fabGesturesKey =
         booleanPreferencesKey("fab_gestures")
 
@@ -146,6 +149,19 @@ object SettingsRepository {
         enabled: Boolean,
     ) {
         context.settingsDataStore.edit { it[noClipboardKey] = enabled }
+    }
+
+    /** A single dictated sentence goes in lowercase and without the final period, like a chat line. */
+    fun simpleSyntax(context: Context): Flow<Boolean> =
+        context.settingsDataStore.data.map { preferences ->
+            preferences[simpleSyntaxKey] ?: false
+        }
+
+    suspend fun setSimpleSyntax(
+        context: Context,
+        enabled: Boolean,
+    ) {
+        context.settingsDataStore.edit { it[simpleSyntaxKey] = enabled }
     }
 
     fun vibrationEnabled(context: Context): Flow<Boolean> =

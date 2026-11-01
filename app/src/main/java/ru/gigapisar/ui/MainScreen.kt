@@ -47,6 +47,7 @@ fun MainScreen(activity: ComponentActivity) {
     var vibrationEnabled by remember { mutableStateOf(true) }
     var fabGestures by remember { mutableStateOf(true) }
     var noClipboard by remember { mutableStateOf(false) }
+    var simpleSyntax by remember { mutableStateOf(false) }
     var fabScale by remember { mutableStateOf(1f) }
     var fabHidden by remember { mutableStateOf<Set<String>>(emptySet()) }
     var brain by remember { mutableStateOf(SettingsRepository.BrainSettings()) }
@@ -89,6 +90,9 @@ fun MainScreen(activity: ComponentActivity) {
     }
     LaunchedEffect(context) {
         SettingsRepository.noClipboard(context).collect { noClipboard = it }
+    }
+    LaunchedEffect(context) {
+        SettingsRepository.simpleSyntax(context).collect { simpleSyntax = it }
     }
     LaunchedEffect(context) {
         SettingsRepository.brain(context).collect { brain = it }
@@ -175,6 +179,8 @@ fun MainScreen(activity: ComponentActivity) {
                     onVibration = { scope.launch { SettingsRepository.setVibrationEnabled(context, it) } },
                     noClipboard = noClipboard,
                     onNoClipboard = { scope.launch { SettingsRepository.setNoClipboard(context, it) } },
+                    simpleSyntax = simpleSyntax,
+                    onSimpleSyntax = { scope.launch { SettingsRepository.setSimpleSyntax(context, it) } },
                     fabScale = fabScale,
                     onFabScale = { scope.launch { SettingsRepository.setFabScale(context, it) } },
                     fabGestures = fabGestures,

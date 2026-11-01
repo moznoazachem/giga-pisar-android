@@ -46,6 +46,7 @@ import ru.gigapisar.settings.AppLanguage
 import ru.gigapisar.settings.InsertionMode
 import ru.gigapisar.settings.SettingsRepository
 import ru.gigapisar.speech.GigaAmOnnxRecognizer
+import ru.gigapisar.text.SimpleSyntax
 import ru.gigapisar.update.Updates
 
 class GigaPisarAccessibilityService : AccessibilityService() {
@@ -93,6 +94,7 @@ class GigaPisarAccessibilityService : AccessibilityService() {
     private var vibrationEnabled = true
     private var fabGestures = true
     private var noClipboard = false
+    private var simpleSyntax = false
     private var fabHiddenApps: Set<String> = emptySet()
     private var fabScale = 1f
     private var fabPreviewing = false
@@ -236,6 +238,11 @@ class GigaPisarAccessibilityService : AccessibilityService() {
             SettingsRepository
                 .noClipboard(this@GigaPisarAccessibilityService)
                 .collectLatest { enabled -> noClipboard = enabled }
+        }
+        serviceScope.launch {
+            SettingsRepository
+                .simpleSyntax(this@GigaPisarAccessibilityService)
+                .collectLatest { enabled -> simpleSyntax = enabled }
         }
 
         serviceScope.launch {
@@ -572,7 +579,8 @@ class GigaPisarAccessibilityService : AccessibilityService() {
                     }
                     // A password is never sent to a cloud service.
                     val brained = if (focusedNode?.isPassword == true) BrainOutcome(recognized) else applyBrain(recognized)
-                    val text = brained.text
+                    // Only plain dictation is simplified; what the Brain wrote goes in exactly as it is.
+                    val text = if (simpleSyntax && brained.original == null) SimpleSyntax.simplified(brained.text) else brained.text
                     val brainFailure = brained.failure
 
                     withContext(

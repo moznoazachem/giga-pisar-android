@@ -1,11 +1,11 @@
 {
-  "version": "0.2.12",
-  "versionCode": 21,
-  "url": "https://github.com/moznoazachem/giga-pisar-android/releases/download/v0.2.12/GigaPisar.apk",
-  "sha256": "3a3269bf63651dd5bd8770b12c7b9d75edb38bbfd946a31375f785f9c1f97414",
-  "size": 58120768,
+  "version": "0.2.13",
+  "versionCode": 22,
+  "url": "https://github.com/moznoazachem/giga-pisar-android/releases/download/v0.2.13/GigaPisar.apk",
+  "sha256": "00f55cf0d586d795e0eab1ac9937a4b560f89954a912554bc5421755f4f964e0",
+  "size": 58145436,
   "notes": {
-    "ru": "Плашка записи как на маке: белая, столбики пляшут вслед за голосом, синие, пока Писарь распознаёт. Кнопка громкости работает, когда телефон подключён к Android Auto.",
-    "en": "The recording pill now looks like the Mac one: light, with bars that dance to your voice and turn blue while Pisar recognizes. The volume key works while the phone is connected to Android Auto."
+    "ru": "Экран не гаснет, пока идёт запись и распознавание. «Упрощать синтаксис»: одно предложение вставляется со строчной буквы и без точки, как реплика в переписке. Мозг умеет работать с Ollama на компьютере в домашней сети.",
+    "en": "The screen stays on while recording and recognizing. \"Simplify punctuation\": a single sentence goes in lowercase and without the final period, like a chat line. The Brain can use Ollama on a computer in your home network."
   }
 }

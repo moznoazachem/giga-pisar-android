@@ -66,6 +66,8 @@
     <string name="volume_key_hint">В поле ввода зажмите громкость вниз и говорите. Вне поля она просто убавляет звук</string>
     <string name="vibration">Вибрация</string>
     <string name="vibration_hint">Коротко в начале и в конце записи</string>
+    <string name="simple_syntax">Упрощать синтаксис</string>
+    <string name="simple_syntax_hint">Если надиктовано одно предложение, вставлять его со строчной буквы и без точки в конце, как реплику в переписке</string>
     <string name="fab_gestures">Жесты кнопки</string>
     <string name="fab_gestures_hint">Вверх к замку: запись без рук. В сторону: отмена</string>
 
