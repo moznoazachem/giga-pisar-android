@@ -134,6 +134,13 @@ internal fun BrainScreen(
     val scope = rememberCoroutineScope()
     var tab by rememberSaveable { mutableStateOf(BrainTab.CLOUD) }
     val ollamaActive = brain.providerId == BrainProviders.Ollama.id
+    // Whoever had a local server chosen in a test build: the Brain quietly goes off.
+    LaunchedEffect(ollamaActive) {
+        if (!LOCAL_SERVER_ENABLED && ollamaActive) {
+            SettingsRepository.setBrainEnabled(context, false)
+            SettingsRepository.setBrainService(context, null, null)
+        }
+    }
     Column(modifier = Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -144,11 +151,13 @@ internal fun BrainScreen(
             }
             Text(stringResource(R.string.brain_switch), style = MaterialTheme.typography.titleLarge)
         }
-        TabRow(selectedTabIndex = tab.ordinal) {
-            Tab(selected = tab == BrainTab.CLOUD, onClick = { tab = BrainTab.CLOUD }, text = { Text(stringResource(R.string.brain_tab_cloud)) })
-            Tab(selected = tab == BrainTab.LOCAL, onClick = { tab = BrainTab.LOCAL }, text = { Text(stringResource(R.string.brain_tab_local)) })
+        if (LOCAL_SERVER_ENABLED) {
+            TabRow(selectedTabIndex = tab.ordinal) {
+                Tab(selected = tab == BrainTab.CLOUD, onClick = { tab = BrainTab.CLOUD }, text = { Text(stringResource(R.string.brain_tab_cloud)) })
+                Tab(selected = tab == BrainTab.LOCAL, onClick = { tab = BrainTab.LOCAL }, text = { Text(stringResource(R.string.brain_tab_local)) })
+            }
         }
-        if (tab == BrainTab.CLOUD) {
+        if (tab == BrainTab.CLOUD || !LOCAL_SERVER_ENABLED) {
             BrainCloudTab(brain = brain)
         } else {
             BrainLocalTab(brain = brain, ollamaActive = ollamaActive)
@@ -157,6 +166,13 @@ internal fun BrainScreen(
 }
 
 private enum class BrainTab { CLOUD, LOCAL }
+
+/**
+ * The "Local server" tab (Ollama over the home network, #32) is hidden for now: it needs
+ * plain http, and an app that allows cleartext traffic gets flagged as harmful by Google
+ * Play Protect (0.2.13 was blocked on install). The code stays until a way back is found.
+ */
+private const val LOCAL_SERVER_ENABLED = false
 
 /** The server answered that it has no such model (see BrainClient.describeFailure). */
 private fun notInstalled(e: BrainException): Boolean = e.message?.contains("ollama pull") == true
@@ -558,7 +574,7 @@ private fun BrainLocalTab(
         }
 
         SectionTitle(R.string.brain_tab_local)
-        val schemeOk = url.startsWith("http://") || url.startsWith("https://")
+        val schemeOk = url.startsWith("https://")
         Column(
             modifier = Modifier.padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),

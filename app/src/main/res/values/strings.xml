@@ -114,7 +114,7 @@
     <string name="brain_where_keys">Где взять ключ</string>
     <string name="brain_tab_cloud">Облачные сервисы</string>
     <string name="brain_tab_local">Локальный сервер</string>
-    <string name="brain_ollama_hint">Ollama, запущенная на компьютере в вашей сети, например http://192.168.1.10:11434</string>
+    <string name="brain_ollama_hint">Ollama, запущенная на компьютере в вашей сети, например https://192.168.1.10:11434</string>
     <string name="brain_ollama_placeholder">Адрес сервера</string>
     <string name="brain_ollama_connect">Проверить и подключить</string>
     <string name="brain_ollama_model_label">Модель (необязательно)</string>
@@ -123,8 +123,8 @@
     <string name="brain_ollama_no_models">Список моделей с сервера получить не удалось, введите название модели вручную</string>
     <string name="brain_ollama_disconnect">Отключить</string>
     <string name="brain_ollama_connected">Подключено к %1$s</string>
-    <string name="brain_ollama_bad_url">Адрес должен начинаться с http:// или https://</string>
-    <string name="brain_ollama_privacy">Текст уходит на ваш компьютер, а не в интернет. По http он идёт по сети без шифрования, поэтому подключайтесь только в своей домашней сети, не в кафе или чужом Wi-Fi.</string>
+    <string name="brain_ollama_bad_url">Адрес должен начинаться с https://. По http Писарь не ходит: Google Play Защита считает такое приложение опасным</string>
+    <string name="brain_ollama_privacy">Текст уходит на ваш компьютер, а не в интернет. Только по https: незашифрованный http Google Play Защита считает признаком вредоносного приложения и блокирует установку.</string>
     <string name="brain_no_model">не нашлась подходящая модель</string>
     <string name="brain_status_ok">Всё работает</string>
     <string name="brain_status_ready">Готов к работе</string>

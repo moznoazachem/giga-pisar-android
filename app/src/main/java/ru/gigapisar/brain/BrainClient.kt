@@ -104,12 +104,14 @@ object BrainClient {
         timeoutMs: Int,
     ): Pair<Int, String> {
         val address = URL(url)
-        // Plain http is allowed for the person's own server at home, never for anything on the internet.
-        if (address.protocol == "http" && !onHomeNetwork(address.host)) {
+        // No plain http at all: an app that allows cleartext traffic gets flagged as harmful
+        // by Google Play Protect (0.2.13 was blocked on install), so the manifest does not
+        // allow it and the system would refuse the connection anyway.
+        if (address.protocol == "http") {
             throw BrainException(
                 say(
-                    "без шифрования (http) можно подключаться только к компьютеру в домашней сети",
-                    "plain http is only allowed to a computer on your home network",
+                    "по http Писарь не ходит: Google Play Защита считает такое приложение опасным. Нужен адрес https://",
+                    "Pisar does not use plain http: Google Play Protect treats such an app as harmful. Use an https:// address",
                 ),
             )
         }
