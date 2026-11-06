@@ -58,8 +58,15 @@ internal fun UpdateBanner(modifier: Modifier = Modifier) {
             needsPermission = false
             Updates.install(context, file)
         }
-        if (info == null && Updates.due(context)) {
-            scope.launch { info = withContext(Dispatchers.IO) { Updates.check(context) } }
+        // Every time the screen comes back, a fresh look at the manifest: a version that was
+        // pulled (0.2.13, blocked by Play Protect) must give way to the one that replaced it,
+        // not sit here with a dead link until the service's next six-hourly check.
+        if (Updates.due(context, Updates.RECHECK_ON_OPEN_MS)) {
+            scope.launch {
+                val fresh = withContext(Dispatchers.IO) { Updates.check(context) }
+                // A check that reached the manifest resets the clock; one that failed leaves the old offer.
+                if (!Updates.due(context, Updates.RECHECK_ON_OPEN_MS)) info = fresh
+            }
         }
         onPauseOrDispose {}
     }
@@ -116,6 +123,12 @@ internal fun UpdateBanner(modifier: Modifier = Modifier) {
                             } catch (e: Exception) {
                                 progress = null
                                 error = context.getString(R.string.update_failed, e.message ?: e.javaClass.simpleName)
+                                // The file may be gone because the release was replaced: look for the new one right away.
+                                val fresh = withContext(Dispatchers.IO) { Updates.check(context) }
+                                if (fresh != null && fresh.versionCode != update.versionCode) {
+                                    info = fresh
+                                    error = null
+                                }
                             }
                         }
                     },

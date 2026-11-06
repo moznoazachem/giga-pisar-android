@@ -74,8 +74,14 @@ object Updates {
         return info.takeIf { it.versionCode > installedCode(context) && it.url.startsWith(TRUSTED_PREFIX) }
     }
 
+    /** The banner looks again this soon after the last check: a release pulled and replaced must not stay on screen for hours. */
+    const val RECHECK_ON_OPEN_MS = 10 * 60 * 1000L
+
     /** Whether it is time for another look (the service and the app share the clock). */
-    fun due(context: Context): Boolean = BuildConfig.SELF_UPDATE && System.currentTimeMillis() - prefs(context).getLong("checkedAt", 0) > CHECK_EVERY_MS
+    fun due(
+        context: Context,
+        every: Long = CHECK_EVERY_MS,
+    ): Boolean = BuildConfig.SELF_UPDATE && System.currentTimeMillis() - prefs(context).getLong("checkedAt", 0) > every
 
     /** Blocking: fetches update.json; returns a newer version or null. Never throws. */
     fun check(context: Context): UpdateInfo? =
