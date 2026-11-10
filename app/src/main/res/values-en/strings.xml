@@ -139,6 +139,16 @@
     <string name="brain_key_saved">Key saved</string>
     <string name="brain_where_keys">Where to get a key</string>
     <string name="brain_tab_cloud">Cloud services</string>
+    <string name="brain_tab_custom">Own server</string>
+    <string name="brain_custom_hint">A service with an OpenAI-style API, e.g. https://api.example.com/v1</string>
+    <string name="brain_custom_placeholder">API address</string>
+    <string name="brain_custom_key">API key, if the service needs one</string>
+    <string name="brain_custom_key_hint">The key is kept encrypted on this phone only</string>
+    <string name="brain_custom_key_saved">A key is already saved. Leave the field empty to keep it</string>
+    <string name="brain_custom_connect">Check and connect</string>
+    <string name="brain_custom_disconnect">Disconnect</string>
+    <string name="brain_custom_bad_url">The address must start with https:// and name a server, e.g. https://api.example.com/v1</string>
+    <string name="brain_custom_privacy">The text goes to the server you named. The key is kept encrypted on this phone only.</string>
     <string name="brain_tab_local">Local server</string>
     <string name="brain_ollama_hint">Ollama running on a computer in your network, e.g. https://192.168.1.10:11434</string>
     <string name="brain_ollama_placeholder">Server address</string>

@@ -139,6 +139,16 @@
     <string name="brain_key_saved">Ключ сохранён</string>
     <string name="brain_where_keys">Где взять ключ</string>
     <string name="brain_tab_cloud">Облачные сервисы</string>
+    <string name="brain_tab_custom">Свой сервер</string>
+    <string name="brain_custom_hint">Сервис с интерфейсом как у OpenAI, например https://api.example.com/v1</string>
+    <string name="brain_custom_placeholder">Адрес API</string>
+    <string name="brain_custom_key">Ключ API, если сервис его требует</string>
+    <string name="brain_custom_key_hint">Ключ хранится зашифрованным только на этом телефоне</string>
+    <string name="brain_custom_key_saved">Ключ уже сохранён. Оставьте поле пустым, чтобы его не менять</string>
+    <string name="brain_custom_connect">Проверить и подключить</string>
+    <string name="brain_custom_disconnect">Отключить</string>
+    <string name="brain_custom_bad_url">Адрес должен начинаться с https:// и содержать имя сервера, например https://api.example.com/v1</string>
+    <string name="brain_custom_privacy">Текст уходит на указанный вами сервер. Ключ хранится зашифрованным только на этом телефоне.</string>
     <string name="brain_tab_local">Локальный сервер</string>
     <string name="brain_ollama_hint">Ollama, запущенная на компьютере в вашей сети, например https://192.168.1.10:11434</string>
     <string name="brain_ollama_placeholder">Адрес сервера</string>

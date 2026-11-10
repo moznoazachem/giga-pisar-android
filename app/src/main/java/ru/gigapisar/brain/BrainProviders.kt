@@ -13,6 +13,8 @@ data class BrainProvider(
     val keysUrl: String,
     /** Local servers take no key; the address the person typed is the whole setup. */
     val local: Boolean = false,
+    /** A service of one's own: the address is typed on its own tab, baseUrl is replaced at calls. */
+    val custom: Boolean = false,
 )
 
 object BrainProviders {
@@ -82,11 +84,61 @@ object BrainProviders {
         return Ollama.copy(baseUrl = if (base.endsWith("/v1", ignoreCase = true)) base else "$base/v1")
     }
 
+    /**
+     * A service of one's own — any OpenAI-compatible API at an address the person typed.
+     * Null when the address is not a usable https one: plain http is refused by the app
+     * (see BrainClient.request).
+     */
+    fun customAt(address: String): BrainProvider? {
+        val base = address.trim().trimEnd('/').takeIf { it.isNotEmpty() } ?: return null
+        if (!base.startsWith("https://", ignoreCase = true)) return null
+        if (!base.substringAfter("://").contains('.')) return null
+        val url = if (base.endsWith("/v1", ignoreCase = true)) base else "$base/v1"
+        // The host stands for the service in the interface: the address the person typed,
+        // not "Свой сервер".
+        val host = base.substringAfter("://").substringBefore("/")
+        return Custom.copy(baseUrl = url, name = host)
+    }
+
+    /** The service a request would actually go to: a typed address in place of the table's one. */
+    fun endpoint(
+        provider: BrainProvider?,
+        ollamaUrl: String,
+        customUrl: String,
+    ): BrainProvider? =
+        when {
+            provider == null -> null
+            provider.custom -> customAt(customUrl)
+            provider.local -> ollamaUrl.takeIf { it.isNotBlank() }?.let(::ollamaAt)
+            else -> provider
+        }
+
+    /**
+     * A service of one's own: the address is typed on its own tab. Key may be blank —
+     * some local gateways take none. The model list is only a guess for the first connect:
+     * cheap, fast chat models that most gateways carry (a person's own pick comes first).
+     */
+    val Custom =
+        BrainProvider(
+            "custom",
+            "Свой сервер",
+            "",
+            listOf(
+                "gpt-4o-mini",
+                "gpt-4.1-mini",
+                "deepseek-chat",
+                "gemini-2.5-flash",
+                "llama-3.3-70b-versatile",
+            ),
+            "",
+            custom = true,
+        )
+
     val all = listOf(DeepSeek, OpenRouter, OpenAI, Groq, Gemini, Anthropic, Ollama)
     val cloud = listOf(DeepSeek, OpenRouter, OpenAI, Groq, Gemini, Anthropic)
     val localServers = listOf(Ollama)
 
-    fun byId(id: String?): BrainProvider? = all.firstOrNull { it.id == id }
+    fun byId(id: String?): BrainProvider? = (all + Custom).firstOrNull { it.id == id }
 
     private val deepSeekKey = Regex("^sk-[0-9a-f]{32}$")
 

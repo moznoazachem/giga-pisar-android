@@ -74,9 +74,17 @@ object SettingsRepository {
     /** The address of a local Ollama server in the home network, like "http://192.168.1.10:11434". */
     private val ollamaUrlKey = stringPreferencesKey("ollama_url")
 
+    /** The address of a service of one's own, like "https://api.example.com/v1". */
+    private val customUrlKey = stringPreferencesKey("custom_url")
+
     fun ollamaUrl(context: Context): Flow<String> =
         context.settingsDataStore.data.map { preferences ->
             preferences[ollamaUrlKey] ?: ""
+        }
+
+    fun customUrl(context: Context): Flow<String> =
+        context.settingsDataStore.data.map { preferences ->
+            preferences[customUrlKey] ?: ""
         }
 
     private fun ollamaKey() = ollamaUrlKey
@@ -86,6 +94,13 @@ object SettingsRepository {
         url: String,
     ) {
         context.settingsDataStore.edit { it[ollamaUrlKey] = url.trim().trimEnd('/') }
+    }
+
+    suspend fun setCustomUrl(
+        context: Context,
+        url: String,
+    ) {
+        context.settingsDataStore.edit { it[customUrlKey] = url.trim().trimEnd('/') }
     }
 
     fun insertionMode(context: Context): Flow<InsertionMode> =
@@ -272,6 +287,8 @@ object SettingsRepository {
         val model: String? = null,
         /** The address of the local Ollama server in the home network. */
         val ollamaUrl: String = "",
+        /** The address of a service of one's own. */
+        val customUrl: String = "",
         /** The last model chosen for each service, so switching services keeps each one's pick. */
         val modelsByProvider: Map<String, String> = emptyMap(),
     )
@@ -292,6 +309,7 @@ object SettingsRepository {
                 providerId = preferences[brainProviderKey],
                 model = preferences[brainModelKey],
                 ollamaUrl = preferences[ollamaKey()] ?: "",
+                customUrl = preferences[customUrlKey] ?: "",
                 modelsByProvider =
                     preferences
                         .asMap()

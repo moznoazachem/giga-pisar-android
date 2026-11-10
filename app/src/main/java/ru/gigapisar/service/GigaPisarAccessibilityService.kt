@@ -776,15 +776,10 @@ class GigaPisarAccessibilityService : AccessibilityService() {
         val settings = brainSettings
         if (!settings.enabled || text.isBlank()) return BrainOutcome(text)
         val listed = BrainProviders.byId(settings.providerId) ?: return BrainOutcome(text)
-        // A local server lives at the address the person typed; clouds have theirs in the table.
-        val provider =
-            if (listed.local) {
-                settings.ollamaUrl.takeIf { it.isNotBlank() }?.let(BrainProviders::ollamaAt) ?: return BrainOutcome(text)
-            } else {
-                listed
-            }
+        // A local or own server lives at the address the person typed; clouds have theirs in the table.
+        val provider = BrainProviders.endpoint(listed, settings.ollamaUrl, settings.customUrl) ?: return BrainOutcome(text)
         val model = settings.model ?: return BrainOutcome(text)
-        val key = KeyVault.load(this, provider.id) ?: if (provider.local) "" else return BrainOutcome(text)
+        val key = KeyVault.load(this, provider.id) ?: if (provider.local || provider.custom) "" else return BrainOutcome(text)
         val parsed = Brain.parseCommand(text)
         if (parsed == null && !settings.everyTake) return BrainOutcome(text)
         // A failed command still puts in what was said before "Писарь".
