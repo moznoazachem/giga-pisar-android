@@ -119,6 +119,15 @@ class GigaPisarAccessibilityService : AccessibilityService() {
     private var volumeKeyHoldTriggered = false
     private var volumeKeyStartedRecording = false
 
+    /** A double press of volume down started a recording that goes on without holding the key. */
+    private var volumeKeyHandsFree = false
+
+    /** The second press of a double press: its release must not become a volume step. */
+    private var volumeKeySwallowUp = false
+
+    /** A short press that waits to see whether a second one follows. */
+    private var volumeKeyPendingTap: Runnable? = null
+
     /** Volume up sends only for a short while after a dictation went into a field of this app. */
     private var sendKeyPressed = false
     private var sendArmedUntil = 0L
@@ -303,6 +312,29 @@ class GigaPisarAccessibilityService : AccessibilityService() {
         if (event.keyCode != KeyEvent.KEYCODE_VOLUME_DOWN) {
             return false
         }
+
+        // The release of a press that began a hands-free recording or ended one: swallowed, so
+        // that the system does not turn it into a volume step of its own.
+        if (volumeKeySwallowUp) {
+            if (event.action == KeyEvent.ACTION_UP) {
+                volumeKeySwallowUp = false
+                return true
+            }
+            if (event.action == KeyEvent.ACTION_DOWN) {
+                return true
+            }
+        }
+
+        // A hands-free recording (a double press started it) ends on the next single press, no
+        // matter which app or field is in front by then.
+        if (volumeKeyHandsFree) {
+            if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
+                volumeKeySwallowUp = true
+                handleRecordingStop()
+            }
+            return true
+        }
+
         // Turned off in settings: the key is plain volume again. A press that began
         // while it was on still gets its release, so a recording never hangs.
         if (!volumeKeyEnabled && !volumeKeyPressed) {
@@ -318,6 +350,13 @@ class GigaPisarAccessibilityService : AccessibilityService() {
                 } else if (!volumeKeyAllowed()) {
                     // No text field open (or only the lock screen's PIN): an ordinary volume key.
                     false
+                } else if (volumeKeyPendingTap != null) {
+                    // The second press of a double press: record without holding instead of
+                    // lowering the volume a second time.
+                    cancelPendingVolumeTap()
+                    volumeKeySwallowUp = true
+                    startVolumeHandsFree()
+                    true
                 } else {
                     volumeKeyPressed = true
                     volumeKeyHoldTriggered = false
@@ -343,16 +382,10 @@ class GigaPisarAccessibilityService : AccessibilityService() {
                         handleRecordingStop()
                     }
                 } else {
-                    // A short press in a text field is an ordinary volume-down. The stream is named
-                    // outright: some firmwares (Vivo) ignore "let Android pick" from a service.
-                    val inCall =
-                        audioManager.mode == AudioManager.MODE_IN_CALL ||
-                            audioManager.mode == AudioManager.MODE_IN_COMMUNICATION
-                    audioManager.adjustStreamVolume(
-                        if (inCall) AudioManager.STREAM_VOICE_CALL else AudioManager.STREAM_MUSIC,
-                        AudioManager.ADJUST_LOWER,
-                        AudioManager.FLAG_SHOW_UI,
-                    )
+                    // A short press may be the first half of a double press, so the volume step
+                    // waits for the window: otherwise a hands-free recording would begin with the
+                    // sound already lowered.
+                    schedulePendingVolumeTap()
                 }
 
                 volumeKeyHoldTriggered = false
@@ -362,6 +395,63 @@ class GigaPisarAccessibilityService : AccessibilityService() {
 
             else -> volumeKeyPressed
         }
+    }
+
+    /** A short press: lower the volume, unless a second press arrives first and makes it a double. */
+    private fun schedulePendingVolumeTap() {
+        cancelPendingVolumeTap()
+
+        val runnable =
+            Runnable {
+                volumeKeyPendingTap = null
+                lowerVolume()
+            }
+
+        volumeKeyPendingTap = runnable
+        mainHandler.postDelayed(runnable, VOLUME_DOUBLE_TAP_WINDOW_MS)
+    }
+
+    private fun cancelPendingVolumeTap() {
+        volumeKeyPendingTap?.let { mainHandler.removeCallbacks(it) }
+        volumeKeyPendingTap = null
+    }
+
+    private fun lowerVolume() {
+        // The stream is named outright: some firmwares (Vivo) ignore "let Android pick" from a service.
+        val inCall =
+            audioManager.mode == AudioManager.MODE_IN_CALL ||
+                audioManager.mode == AudioManager.MODE_IN_COMMUNICATION
+        audioManager.adjustStreamVolume(
+            if (inCall) AudioManager.STREAM_VOICE_CALL else AudioManager.STREAM_MUSIC,
+            AudioManager.ADJUST_LOWER,
+            AudioManager.FLAG_SHOW_UI,
+        )
+    }
+
+    /**
+     * A double press of volume down: the recording goes on without holding the key, and the next
+     * single press ends it and inserts the text. The button says "Вставить" until then, so a tap
+     * on it ends the recording too.
+     */
+    private fun startVolumeHandsFree() {
+        if (recording) {
+            // The hold timer started a recording a moment ago: keep it and make it hands-free.
+            volumeKeyHandsFree = true
+            overlay.lockHandsFree()
+            updateButtonVisibility()
+            return
+        }
+
+        handleRecordingStart(fromButton = true)
+
+        if (!recording) {
+            // No microphone permission or no model: nothing to end with the next press.
+            return
+        }
+
+        volumeKeyHandsFree = true
+        overlay.lockHandsFree()
+        updateButtonVisibility()
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
@@ -427,8 +517,9 @@ class GigaPisarAccessibilityService : AccessibilityService() {
     private fun updateButtonVisibility() {
         val shouldShow =
             fabPreviewing ||
-                // A hands-free recording is ended only with the button: it stays until then.
-                recording && overlay.handsFree ||
+                // A hands-free recording is ended only with the button: it stays until then —
+                // but only if the button was on in the first place, not instead of the pill.
+                recording && overlay.handsFree && virtualButtonEnabled ||
                 virtualButtonEnabled &&
                 (
                     insertionMode == InsertionMode.CLIPBOARD ||
@@ -599,7 +690,7 @@ class GigaPisarAccessibilityService : AccessibilityService() {
 
         recording = true
         overlay.setLevelSource { audioRecorder.level }
-        if (fromButton && fabGestures) {
+        if (fromButton && fabGestures && overlay.canShowStrip) {
             // The strip next to the button shows the time and the way to cancel.
             overlay.setRecording()
         } else {
@@ -616,6 +707,7 @@ class GigaPisarAccessibilityService : AccessibilityService() {
             return
         }
         recording = false
+        volumeKeyHandsFree = false
         audioRecorder.cancel()
         overlay.setIdle()
         pill.hide()
@@ -630,6 +722,7 @@ class GigaPisarAccessibilityService : AccessibilityService() {
         }
 
         recording = false
+        volumeKeyHandsFree = false
 
         overlay.setProcessing()
         pill.showProcessing()
@@ -1129,14 +1222,20 @@ class GigaPisarAccessibilityService : AccessibilityService() {
 
     private fun cancelVolumeKeyGesture() {
         mainHandler.removeCallbacks(volumeKeyHoldRunnable)
+        cancelPendingVolumeTap()
         volumeKeyPressed = false
         volumeKeyHoldTriggered = false
         volumeKeyStartedRecording = false
+        volumeKeySwallowUp = false
+        volumeKeyHandsFree = false
     }
 
     companion object {
         // An ordinary tap lasts 100-200 ms; recording starts only on a deliberate hold.
         private const val VOLUME_RECORDING_HOLD_DELAY_MS = 350L
+
+        /** How long a short press waits for a second one: within it the pair means "record hands-free". */
+        private const val VOLUME_DOUBLE_TAP_WINDOW_MS = 400L
 
         /** How long after an insertion volume up still means "send". */
         private const val SEND_KEY_WINDOW_MS = 20_000L

@@ -8,6 +8,7 @@ import android.graphics.PixelFormat
 import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.Typeface
+import android.os.SystemClock
 import android.text.StaticLayout
 import android.text.TextPaint
 import android.text.TextUtils
@@ -235,6 +236,18 @@ class RecordingPill(
         private val textPadV = 7 * density
         private val heights = FloatArray(barCount)
 
+        // The recording time, left of the wave: the strip next to the floating button shows one,
+        // and without the button the pill is the only thing that says how long it has been going.
+        private val timePaint =
+            TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+                textSize = 13 * resources.displayMetrics.scaledDensity
+                typeface = Typeface.MONOSPACE
+                color = 0xD9000000.toInt()
+            }
+        private val timeGap = 8 * density
+        private val timeWidth = timePaint.measureText("00:00")
+        private var listenStartedAt = 0L
+
         // The Mac wave, frame for frame: one step is 1/60 s, whatever the screen's refresh rate.
         private var smoothLevel = 0f
         private val gain = FloatArray(barCount) { 1f }
@@ -257,6 +270,7 @@ class RecordingPill(
         fun pillWidth(): Int =
             when (mode) {
                 Mode.MESSAGE -> (2 * padding + messageWidth()).roundToInt()
+                Mode.LISTENING -> (2 * padding + timeWidth + timeGap + barsWidth).roundToInt()
                 else -> (2 * padding + barsWidth).roundToInt()
             }
 
@@ -278,6 +292,7 @@ class RecordingPill(
         fun listen(level: () -> Float) {
             this.level = level
             mode = Mode.LISTENING
+            listenStartedAt = SystemClock.uptimeMillis()
             heights.fill(0f)
             smoothLevel = 0f
             burst = -1
@@ -414,6 +429,15 @@ class RecordingPill(
             // While recognizing, the bars stand still and turn blue: the work is not over yet.
             barPaint.color = if (mode == Mode.PROCESSING) BUSY_COLOR else BAR_COLOR
             var x = r.left + padding
+            if (mode == Mode.LISTENING) {
+                // The recording time, in the same place the strip puts it next to the button.
+                val elapsed = SystemClock.uptimeMillis() - listenStartedAt
+                val seconds = elapsed / 1000
+                val time = "%d:%02d".format(seconds / 60, seconds % 60)
+                val timeY = r.centerY() - (timePaint.descent() + timePaint.ascent()) / 2
+                canvas.drawText(time, x, timeY, timePaint)
+                x += timeWidth + timeGap
+            }
             for (i in 0 until barCount) {
                 // At rest a bar is a dot, not a lying oval: its height never goes below its width.
                 val sway = if (mode == Mode.PROCESSING) BUSY_BAR else heights[i]
