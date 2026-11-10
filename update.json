@@ -1,11 +1,11 @@
 {
-  "version": "0.2.14",
-  "versionCode": 23,
-  "url": "https://github.com/moznoazachem/giga-pisar-android/releases/download/v0.2.14/GigaPisar.apk",
-  "sha256": "04760e5fd87738871b0fe2b3959ef01b30051727e61b2b94b29d03dbf68b86b7",
-  "size": 58126552,
+  "version": "0.2.15",
+  "versionCode": 33,
+  "url": "https://github.com/moznoazachem/giga-pisar-android/releases/download/v0.2.15/GigaPisar.apk",
+  "sha256": "282f629155737c4d5ffabaf1834adaf33dcbfd107c55f4186281d9c49e95df38",
+  "size": 58176280,
   "notes": {
-    "ru": "Экран не гаснет, пока идёт запись и распознавание. «Упрощать синтаксис»: одно предложение вставляется со строчной буквы и без точки, как реплика в переписке.",
-    "en": "The screen stays on while recording and recognizing. \"Simplify punctuation\": a single sentence goes in lowercase and without the final period, like a chat line."
+    "ru": "«Сократить»: из долгой речи одно короткое сообщение. Редактор инструкций Мозга. Отправка громкостью вверх. Samsung Notes. «Э-э» убираются без интернета, короткие диктовки без Мозга, без точки в конце.",
+    "en": "Shorten: a long ramble becomes one short message. Brain instructions editor. Send with volume up. Samsung Notes. \"Uh\" removed offline, short takes skip the Brain, no final period."
   }
 }
