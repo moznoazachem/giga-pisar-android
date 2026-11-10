@@ -60,6 +60,7 @@ fun MainScreen(activity: ComponentActivity) {
         mutableStateOf(isAccessibilityServiceEnabled(context))
     }
     var microphoneGranted by remember { mutableStateOf(isMicrophonePermissionGranted(context)) }
+    var oemSetupDone by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val permissionLauncher =
         rememberLauncherForActivityResult(
@@ -115,6 +116,9 @@ fun MainScreen(activity: ComponentActivity) {
     LaunchedEffect(context) {
         SettingsRepository.fabHiddenApps(context).collect { fabHidden = it }
     }
+    LaunchedEffect(context) {
+        SettingsRepository.oemSetupDone(context).collect { oemSetupDone = it }
+    }
     val hiddenAppNames = remember(fabHidden) { appLabels(context, fabHidden) }
 
     LifecycleResumeEffect(context) {
@@ -164,8 +168,10 @@ fun MainScreen(activity: ComponentActivity) {
                         SetupWizard(
                             microphoneGranted = microphoneGranted,
                             accessibilityEnabled = accessibilityEnabled,
+                            oemSetupDone = oemSetupDone,
                             onRequestMicrophone = requestMicrophone,
                             onOpenAccessibilitySettings = openAccessibilitySettings,
+                            onOemSetupDone = { scope.launch { SettingsRepository.setOemSetupDone(context, true) } },
                             onModelInstalled = { modelInstalled = true },
                         )
                     }

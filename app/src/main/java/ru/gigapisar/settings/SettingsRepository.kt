@@ -57,6 +57,9 @@ object SettingsRepository {
     private val noFinalPeriodKey =
         booleanPreferencesKey("no_final_period")
 
+    private val oemSetupDoneKey =
+        booleanPreferencesKey("oem_setup_done")
+
     private const val BRAIN_MODEL_PREFIX = "brain_model_for_"
 
     /** A page or two of rules is plenty; more only slows the model down. */
@@ -166,6 +169,19 @@ object SettingsRepository {
         enabled: Boolean,
     ) {
         context.settingsDataStore.edit { it[sendKeyKey] = enabled }
+    }
+
+    /** The user has been through the phone-maker's own switches (restricted settings, autostart). */
+    fun oemSetupDone(context: Context): Flow<Boolean> =
+        context.settingsDataStore.data.map { preferences ->
+            preferences[oemSetupDoneKey] ?: false
+        }
+
+    suspend fun setOemSetupDone(
+        context: Context,
+        done: Boolean,
+    ) {
+        context.settingsDataStore.edit { it[oemSetupDoneKey] = done }
     }
 
     /** Never paste through the clipboard: where a field does not take text directly, say so instead. */

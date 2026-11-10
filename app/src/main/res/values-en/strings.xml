@@ -39,7 +39,7 @@
     <string name="button_insert">Insert</string>
     <string name="bar_cancel">Cancel</string>
 
-    <string name="setup_step">Step %1$d of 3</string>
+    <string name="setup_step">Step %1$d of %2$d</string>
     <string name="setup_mic_title">Allow the microphone</string>
     <string name="setup_mic_text">Pisar listens only while you hold the button. Nothing is sent anywhere: speech is recognized on the phone.</string>
     <string name="setup_mic_button">Allow</string>
@@ -47,6 +47,18 @@
     <string name="setup_access_text">This lets Pisar notice the volume down key and put text into the field. Find “Giga Pisar” in the list of services and turn it on.</string>
     <string name="setup_access_button">Open settings</string>
     <string name="setup_access_hint">If Android says “restricted setting”: Settings → Apps → Giga Pisar → ⋮ → Allow restricted settings. Then turn the service on again.</string>
+    <string name="setup_oem_title">Phone: %1$s</string>
+    <string name="setup_oem_text_xiaomi">HyperOS blocks accessibility for apps that were not installed from a store until “restricted settings” are allowed. Open App info → the ⋮ menu → Allow restricted settings. Then add Pisar to autostart and set battery saver to “No restrictions”. Without this the service is dropped after a reboot and the volume key stops working.</string>
+    <string name="setup_oem_text_huawei">EMUI drops the accessibility service for apps that were not installed from a store. Open App info → Allow restricted settings, then allow autostart in the startup manager and lift the battery limits.</string>
+    <string name="setup_oem_text_samsung">One UI puts apps that were not installed from a store to sleep and the accessibility service falls off. Open App info → Allow restricted settings, then lift the battery limits in device care.</string>
+    <string name="setup_oem_text_oppo">ColorOS does not keep apps that were not installed from a store in memory. Open App info → Allow restricted settings, then allow autostart and lift the battery limits.</string>
+    <string name="setup_oem_text_vivo">Funtouch OS drops the accessibility service for apps that were not installed from a store. Open App info → Allow restricted settings, then allow autostart in the manager.</string>
+    <string name="setup_oem_text_other">Android 13 and newer hides accessibility for apps that were not installed from a store until “restricted settings” are allowed. Open App info → the ⋮ menu → Allow restricted settings.</string>
+    <string name="setup_oem_button_app_info">Open app settings</string>
+    <string name="setup_oem_button_autostart">Open autostart</string>
+    <string name="setup_oem_button_battery">Open battery settings</string>
+    <string name="setup_oem_next">Done, next</string>
+    <string name="setup_oem_hint">Only the phone can grant these; the app cannot turn them on itself. If a button does not open the right screen, find it by hand in the phone settings.</string>
     <string name="setup_model_title">Download the recognition model</string>
     <string name="setup_model_text">GigaAM, 225 MB. Downloaded once, then Pisar works offline. Better over Wi-Fi.</string>
     <string name="setup_model_button">Download</string>
